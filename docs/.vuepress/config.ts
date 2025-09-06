@@ -106,7 +106,7 @@ export default defineUserConfig({
         hostname: 'https://docs.pguide.studio',
 
         /* 文档仓库配置，用于 editLink */
-        docsRepo: 'https://github.com/PGuideDev/PGuide-Docs',
+        docsRepo: 'https://github.com/rzfgentlevip/Code-Guide',
         docsDir: 'docs',
         docsBranch: 'master',
 

@@ -15,11 +15,11 @@ export default defineThemeConfig({
                 svg: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12a12 12 0 0 0 12-12A12 12 0 0 0 12 0zm6.09 5.333c.328 0 .593.266.592.593v1.482a.594.594 0 0 1-.593.592H9.777c-.982 0-1.778.796-1.778 1.778v5.63c0 .327.266.592.593.592h5.63c.982 0 1.778-.796 1.778-1.778v-.296a.593.593 0 0 0-.592-.593h-4.15a.59.59 0 0 1-.592-.592v-1.482a.593.593 0 0 1 .593-.592h6.815c.327 0 .593.265.593.592v3.408a4 4 0 0 1-4 4H5.926a.593.593 0 0 1-.593-.593V9.778a4.444 4.444 0 0 1 4.445-4.444h8.296Z"/></svg>`,
                 name: 'gitee',
             },
-            link: 'https://gitee.com/rand777/PGuide-Docs',
+            link: 'https://gitee.com/fewevw/code-guide',
         },
         {
             icon: "github",
-            link: 'https://github.com/PGuideDev/PGuide-Docs'
+            link: 'https://github.com/rzfgentlevip/Code-Guide'
         },
         {
             icon: {
@@ -28,9 +28,9 @@ export default defineThemeConfig({
             }
             , link: 'https://git.cqmu.edu.cn'
         },
-        {icon: 'qq', link: 'https://qm.qq.com/q/Ur5Q6kyTsG'},
+        {icon: 'qq', link: 'https://gitlab.com/users/sign_in'},
     ],
-    navbarSocialInclude: ['github', 'gitee', 'qq'], // 允许显示在导航栏的 social 社交链接
+    navbarSocialInclude: ['github', 'gitee', 'gitlab'], // 允许显示在导航栏的 social 社交链接
     aside: true, // 页内侧边栏， 默认显示在右侧
     outline: [2, 6], // 页内大纲， 默认显示 h2, h3
 
@@ -38,7 +38,7 @@ export default defineThemeConfig({
     footer: {
         // message: '<a href="https://docs.pguide.cloud" target="_blank" style="transition: all 0.3s ease; display: inline-block; background: linear-gradient(270deg, #ff6b6b, #4ecdc4, #ff6b6b); background-size: 200% 100%; animation: moveGradient 3s infinite linear; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; position: relative;" onmouseover="this.style.transform=\'scale(1.1)\'; this.style.animationDuration=\'1s\'" onmouseout="this.style.transform=\'scale(1)\'; this.style.animationDuration=\'3s\'">国内镜像站点</a> | <a href="https://docs.pguide.studio" target="_blank" style="transition: all 0.3s ease; display: inline-block; background: linear-gradient(270deg, #a8e6cf, #3498db, #a8e6cf); background-size: 200% 100%; animation: moveGradient 3s infinite linear; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; position: relative;" onmouseover="this.style.transform=\'scale(1.1)\'; this.style.animationDuration=\'1s\'" onmouseout="this.style.transform=\'scale(1)\'; this.style.animationDuration=\'3s\'">国际主站点</a> | <a href="https://ecosystem.pguide.studio" target="_blank" style="transition: all 0.3s ease; display: inline-block; background: linear-gradient(270deg, #dcd6f7, #424874, #dcd6f7); background-size: 200% 100%; animation: moveGradient 3s infinite linear; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; position: relative;" onmouseover="this.style.transform=\'scale(1.1)\'; this.style.animationDuration=\'1s\'" onmouseout="this.style.transform=\'scale(1)\'; this.style.animationDuration=\'3s\'">项导生态</a><style>@keyframes moveGradient { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; }}</style>',
         message: '',
-        copyright: 'Code Guide © 2023-2025',
+        copyright: 'Code Guide © 2020-2025',
     },
     notFound: {
         code: '啊偶，好像没有这个页面',
@@ -77,7 +77,7 @@ export default defineThemeConfig({
         contentType: 'markdown',
         content: `\
             **2025-08-17**        
-            - 已迁移至 [docs.pguide.dev](https://docs.pguide.dev/)
+            - 已迁移至 [docs.code-guide](https://github.com/PGuideDev/PGuide-Docs)
             `
         ,
     },
