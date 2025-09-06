@@ -65,11 +65,12 @@ export default defineThemeConfig({
     profile: {
         avatar: '/icon/logo.svg',
         name: 'Code Guide',
-        // description: '项导文档',
+        description: '项导文档说明',
         circle: true,
-        // location: '',
+        location: 'left',
         // organization: '',
     },
+
 
     navbar,
     notes,
