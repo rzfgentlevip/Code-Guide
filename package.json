@@ -1,0 +1,48 @@
+{
+  "name": "code-guide",
+  "type": "module",
+  "version": "1.0.0-rc.160",
+  "description": "项导文档",
+  "author": "PGuide Studio <contact@pguide.studio>",
+  "license": "MPL 2.0",
+  "engines": {
+    "node": "^18.20.0 || >=20.0.0"
+  },
+  "scripts": {
+    "docs:dev": "vuepress dev docs",
+    "docs:dev-clean": "vuepress dev docs --clean-cache --clean-temp",
+    "docs:build": "vuepress build docs --clean-cache --clean-temp node",
+    "docs:preview": "http-server docs/.vuepress/dist",
+    "vp-update": "pnpm dlx vp-update"
+  },
+  "devDependencies": {
+    "@vuepress/bundler-vite": "2.0.0-rc.24",
+    "@vuepress/plugin-baidu-analytics": "2.0.0-rc.112",
+    "@vuepress/plugin-pwa": "2.0.0-rc.112",
+    "http-server": "^14.1.1",
+    "sass-embedded": "^1.89.2",
+    "typescript": "^5.9.2",
+    "vue": "^3.5.18",
+    "vuepress": "2.0.0-rc.24",
+    "vuepress-theme-plume": "1.0.0-rc.160"
+  },
+  "dependencies": {
+    "@iconify/json": "^2.2.366",
+    "@vuepress/plugin-google-analytics": "2.0.0-rc.112",
+    "@vuepress/plugin-umami-analytics": "2.0.0-rc.112",
+    "@vuepress/shiki-twoslash": "2.0.0-rc.112",
+    "@waline/client": "^3.6.0",
+    "annotation": "^0.1.0",
+    "artplayer": "^5.2.5",
+    "dashjs": "^5.0.3",
+    "echarts": "^5.6.0",
+    "flowchart": "^1.2.0",
+    "hls.js": "^1.6.7",
+    "markmap-lib": "^0.18.12",
+    "markmap-toolbar": "^0.18.12",
+    "markmap-view": "^0.18.12",
+    "mermaid": "^11.9.0",
+    "node-fetch": "^3.3.2",
+    "swiper": "^11.2.10"
+  }
+}
