@@ -63,7 +63,6 @@ export default defineUserConfig({
     shouldPrefetch: false, // 站点较大，页面数量较多时，不建议启用
 
     theme: plumeTheme({
-
         markdown: {
             echarts: true, // 启用 ECharts 支持
             mermaid: true, // 启用 Mermaid 支持
