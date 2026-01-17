@@ -729,23 +729,23 @@ export const navbar = defineNavbarConfig([
                 link: '/compre-guide/'
             },
             {
-                icon: 'carbon:container-software',
+                icon: 'logos:producthunt',
                 text: '生产问题分析',
                 items: [
                     {
-                        icon: 'ic:outline-memory',
+                        icon: 'icon-park-solid:memory-card-one',
                         text: 'java内存占用过高排查',
                         link: '/compre-guide/production-issues/Java进程资源占用过高问题排查/',
                         badge: 'Java'
                     },
                     {
-                        icon: 'ic:outline-memory',
+                        icon: 'material-icon-theme:folder-resolver',
                         text: 'spark数据倾斜处理方案',
                         link: '/compre-guide/production-issues/spark数据倾斜处理方案/',
                         badge: 'Spark'
                     },
                     {
-                        icon: 'ic:outline-memory',
+                        icon: 'streamline-ultimate-color:network',
                         text: 'wireshark网络抓包分析',
                         link: '/compre-guide/production-issues/wireshark网络抓包分析/',
                         badge: 'tools'
@@ -757,19 +757,19 @@ export const navbar = defineNavbarConfig([
                 text: '技术博客',
                 items: [
                     {
-                        icon: 'icon-park-twotone:six-key',
+                        icon: 'material-icon-theme:dart',
                         text: '高并发系统性能指标',
                         link: '/compre-guide/technical-blog/高并发系统性能指标/',
                         badge: '性能指标'
                     },
                     {
-                        icon: 'icon-park-twotone:six-key',
+                        icon: 'material-icon-theme:robots',
                         text: '线上进程内存动态查看',
                         link: '/compre-guide/technical-blog/线上进程内存动态查看/',
                         badge: {type: 'warning', text: '性能指标'}
                     },
                     {
-                        icon: 'icon-park-twotone:six-key',
+                        icon: 'material-icon-theme:swagger',
                         text: '零拷贝技术',
                         link: '/compre-guide/technical-blog/零拷贝技术/',
                         badge: {type: 'warning', text: '性能指标'}
@@ -781,13 +781,13 @@ export const navbar = defineNavbarConfig([
                 text: '场景分析',
                 items: [
                     {
-                        icon: 'icon-park-twotone:six-key',
+                        icon: 'material-icon-theme:wxt',
                         text: '如何避免频繁的微服务调用',
                         link: '/compre-guide/scene/如何避免频繁的微服务调用/',
                         badge: '场景分析'
                     },
                     {
-                        icon: 'icon-park-twotone:six-key',
+                        icon: 'material-icon-theme:tsconfig',
                         text: '微服务技术选型',
                         link: '/compre-guide/scene/微服务技术选型/',
                         badge: '场景分析'
