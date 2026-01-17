@@ -22,7 +22,7 @@ export const navbar = defineNavbarConfig([
                     {
                     icon: 'logos:ubuntu',
                     text: 'echo> what is linux ',
-                    link: '/learning-notes/linux/',
+                    link: '/learning-notes/linux/', //导航到/learning-notes/linux/README.md 首页
                     badge: 'Linux发行版'
                     },
                     {
@@ -30,6 +30,12 @@ export const navbar = defineNavbarConfig([
                         text: 'Linux入门及命令',
                         link: '/learning-notes/linux/commands/',
                         badge: '.sh'
+                    },
+                    {
+                        icon: 'heroicons:command-line-20-solid',
+                        text: 'linux命令手册',
+                        link: '/learning-notes/linux/linux命令手册/',
+                        badge: '/bin/bash/'
                     },
                 ]
             },
@@ -67,14 +73,14 @@ export const navbar = defineNavbarConfig([
                 text: '虚拟化学习',
                 items: [
                     {
-                        icon: 'icon-park-twotone:install',
-                        text: 'K8S容器技术',
+                        icon: 'skill-icons:kubernetes',
+                        text: 'k8s容器技术',
                         link: '/learning-notes/virtualization/k8s/',
                         badge: 'K8S'
                     },
                     {
-                        icon: 'icon-park-twotone:install',
-                        text: 'DOCKER容器技术',
+                        icon: 'skill-icons:docker',
+                        text: 'Docker容器技术',
                         link: '/learning-notes/virtualization/k8s/',
                         badge: 'DOCKER'
                     },
@@ -123,7 +129,28 @@ export const navbar = defineNavbarConfig([
                     {
                         icon: 'catppuccin:devcontainer',
                         text: '后端技术笔记',
-                        link: '/learning-notes/backend-dev/',
+                        link: '/learning-notes/backend/',
+                    },
+                ]
+            },
+            {
+                icon: 'devicon:hadoop',
+                text: '大数据',
+                items: [
+                    {
+                        icon: 'devicon:apachespark',
+                        text: 'Spark 框架',
+                        link: '/learning-notes/big-data/spark/'
+                    },
+                    {
+                        icon: 'logos:apache-flink-icon',
+                        text: 'Flink 框架',
+                        link: '/learning-notes/big-data/flink/',
+                    },
+                    {
+                        icon: 'simple-icons:apachehbase',
+                        text: 'Hbase 框架',
+                        link: '/learning-notes/big-data/hbase/',
                     },
                 ]
             },
@@ -183,19 +210,52 @@ export const navbar = defineNavbarConfig([
         text: '项目文档',
         items: [
             {
-                icon: 'openmoji:european-name-badge',
-                text: '项目相关规范',
-                link: '/project-docs/standards/name-project/',
-            },
-            {
-                icon: 'openmoji:european-name-badge',
-                text: '项目实施经验',
-                link: '/project-docs/project-experience/',
+                icon: 'carbon:math-curve',
+                text: '算法分析',
+                link: '/project-docs/algorithm/',
+                badge: {type: 'warning', text: '整理中'}
             },
             {
                 icon: 'carbon:license-third-party',
                 text: '项目知识产权',
                 link: '/project-docs/project-intellectual-property/',
+            },
+            {
+                icon: 'streamline-freehand-color:website-development-monitor-www-web',
+                text: '项目开发',
+                items: [
+                    {
+                        icon: 'material-icon-theme:folder-project',
+                        text: 'Springboot Starter开发',
+                        link: '/project-docs/project/bootStarter/',
+                        badge: {type: 'tip', text: '案例'}
+                    },
+                    {
+                        icon: 'fa6-brands:square-threads',
+                        text: '动态线程池实现组件',
+                        link: '/project-docs/project/threadPool/',
+                        badge: {type: 'tip', text: '案例'}
+                    },
+                    {
+                        icon: 'logos:spring-icon',
+                        text: 'Springboot框架实现',
+                        link: '/project-docs/project/springframework/',
+                        badge: {type: 'tip', text: '案例'}
+                    },
+
+                ],
+            },
+            {
+                icon: 'streamline-freehand-color:website-development-build',
+                text: '项目实施经验',
+                items: [
+                    {
+                        icon: 'pajamas:deployments',
+                        text: 'K8S部署应用案例',
+                        link: '/project-docs/experience/K8S部署应用案例/',
+                        badge: {type: 'tip', text: '案例'}
+                    },
+                ],
             },
             {
                 icon: 'codicon:github-project',
@@ -287,7 +347,6 @@ export const navbar = defineNavbarConfig([
                     },
                 ],
             },
-
         ]
     },
     // CS-DIY 导航
@@ -676,8 +735,20 @@ export const navbar = defineNavbarConfig([
                     {
                         icon: 'ic:outline-memory',
                         text: 'java内存占用过高排查',
-                        link: '/compre-guide/production-issues/memoryanalyze/',
-                        badge: 'JAVA'
+                        link: '/compre-guide/production-issues/Java进程资源占用过高问题排查/',
+                        badge: 'Java'
+                    },
+                    {
+                        icon: 'ic:outline-memory',
+                        text: 'spark数据倾斜处理方案',
+                        link: '/compre-guide/production-issues/spark数据倾斜处理方案/',
+                        badge: 'Spark'
+                    },
+                    {
+                        icon: 'ic:outline-memory',
+                        text: 'wireshark网络抓包分析',
+                        link: '/compre-guide/production-issues/wireshark网络抓包分析/',
+                        badge: 'tools'
                     },
                 ]
             },
@@ -688,32 +759,68 @@ export const navbar = defineNavbarConfig([
                     {
                         icon: 'icon-park-twotone:six-key',
                         text: '高并发系统性能指标',
-                        link: '/compre-guide/technical-blog/performance/',
+                        link: '/compre-guide/technical-blog/高并发系统性能指标/',
                         badge: '性能指标'
+                    },
+                    {
+                        icon: 'icon-park-twotone:six-key',
+                        text: '线上进程内存动态查看',
+                        link: '/compre-guide/technical-blog/线上进程内存动态查看/',
+                        badge: {type: 'warning', text: '性能指标'}
+                    },
+                    {
+                        icon: 'icon-park-twotone:six-key',
+                        text: '零拷贝技术',
+                        link: '/compre-guide/technical-blog/零拷贝技术/',
+                        badge: {type: 'warning', text: '性能指标'}
                     },
                 ]
             },
             {
-                icon: '/icon/cert.svg',
+                icon: 'streamline-emojis:magnifying-glass-tilted-left',
+                text: '场景分析',
+                items: [
+                    {
+                        icon: 'icon-park-twotone:six-key',
+                        text: '如何避免频繁的微服务调用',
+                        link: '/compre-guide/scene/如何避免频繁的微服务调用/',
+                        badge: '场景分析'
+                    },
+                    {
+                        icon: 'icon-park-twotone:six-key',
+                        text: '微服务技术选型',
+                        link: '/compre-guide/scene/微服务技术选型/',
+                        badge: '场景分析'
+                    },
+                ]
+            },
+            {
+                icon: 'openmoji:interview',
                 text: '面试指南',
                 items: [
+                    {
+                        icon: 'catppuccin:devcontainer',
+                        text: 'java面试指南',
+                        link: '/compre-guide/interview/java/',
+                        badge: 'Java'
+                    },
                     {
                         icon: 'material-icon-theme:codecov',
                         text: 'kafka面试指南',
                         link: '/compre-guide/interview/kafka/',
-                        badge: 'KAFKA'
+                        badge: 'kafka'
                     },
                     {
                         icon: 'catppuccin:devcontainer',
-                        text: 'java面试指南',
-                        link: '/compre-guide/interview/java/collection/',
-                        badge: 'JAVA'
+                        text: 'Flink面试指南',
+                        link: ' /compre-guide/interview/flink/',
+                        badge: 'Flink'
                     },
                     {
                         icon: 'material-icon-theme:clangd',
                         text: 'K8S面试指南',
                         link: '/compre-guide/interview/k8s/',
-                        badge: 'K8S'
+                        badge: 'k8s'
                     },
                 ]
             },
