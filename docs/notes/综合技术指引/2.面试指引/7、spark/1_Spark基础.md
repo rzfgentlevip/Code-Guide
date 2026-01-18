@@ -1,5 +1,5 @@
 ---
-title: Spark技术手册
+title: 1、Spark技术手册
 icon: devicon:apachespark
 order: 1
 author: bugcode
@@ -15,7 +15,7 @@ star: true
 footer: 分布式
 copyright: bugcode
 createTime: 2026/01/17 13:46:58
-permalink: /compre-guide/r8z1phj7/
+permalink: /compre-guide/interview/Spark技术手册/
 ---
 
 

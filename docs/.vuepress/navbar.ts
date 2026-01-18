@@ -140,7 +140,12 @@ export const navbar = defineNavbarConfig([
                     {
                         icon: 'devicon:apachespark',
                         text: 'Spark 框架',
-                        link: '/learning-notes/big-data/spark/'
+                        link: '/learning-notes/big-data/spark/',
+                    },
+                    {
+                        icon: 'devicon:apachespark',
+                        text: 'SparkSql ',
+                        link: '/learning-notes/big-data/sparksql/',
                     },
                     {
                         icon: 'logos:apache-flink-icon',
@@ -258,6 +263,12 @@ export const navbar = defineNavbarConfig([
                         icon: 'pajamas:deployments',
                         text: 'K8S部署应用案例',
                         link: '/project-docs/experience/K8S部署应用案例/',
+                        badge: {type: 'tip', text: '案例'}
+                    },
+                    {
+                        icon: 'material-icon-theme:folder-examples',
+                        text: '数据中台及数据应用总体设计',
+                        link: '/project-docs/experience/数据中台及数据应用总体设计/',
                         badge: {type: 'tip', text: '案例'}
                     },
                 ],
