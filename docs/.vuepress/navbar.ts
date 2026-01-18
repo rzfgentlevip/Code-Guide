@@ -242,7 +242,12 @@ export const navbar = defineNavbarConfig([
                         link: '/project-docs/project/springframework/',
                         badge: {type: 'tip', text: '案例'}
                     },
-
+                    {
+                        icon: 'icon-park:data',
+                        text: '实时数仓项目',
+                        link: '/project-docs/project/RealtimeWarehouse/',
+                        badge: {type: 'tip', text: '案例'}
+                    },
                 ],
             },
             {
@@ -821,6 +826,36 @@ export const navbar = defineNavbarConfig([
                         text: 'K8S面试指南',
                         link: '/compre-guide/interview/k8s/',
                         badge: 'k8s'
+                    },
+                ]
+            },
+            {
+                icon: 'material-symbols:warehouse-rounded',
+                text: '数据仓库理论',
+                items: [
+                    {
+                        icon: 'streamline-ultimate-color:warehouse-storage-2',
+                        text: '数据仓库建模理论',
+                        link: '/compre-guide/dw/数据仓库建模理论/',
+                        badge: '数仓建模'
+                    },
+                    {
+                        icon: 'material-icon-theme:tsconfig',
+                        text: '数据仓库面试',
+                        link: '/compre-guide/dw/数据仓库面试/',
+                        badge: '数仓建模'
+                    },
+                    {
+                        icon: 'lsicon:toggle-warehouse-y-filled',
+                        text: '实时数仓项目总结',
+                        link: '/compre-guide/dw/实时数仓项目总结/',
+                        badge: '数仓建模'
+                    },
+                    {
+                        icon: 'streamline-ultimate:optimization-graph-line-bold',
+                        text: '实时数仓项目优化',
+                        link: '/compre-guide/dw/实时数仓项目优化/',
+                        badge: '数仓优化'
                     },
                 ]
             },
