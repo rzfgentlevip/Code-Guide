@@ -5,7 +5,7 @@ description: 以下为愿意公开身份的贡献者们，排名不分先后，�
 permalink: /friends/persons/
 pageLayout: friends
 list:
-  - name: bugcode
+  - name: rand777
     link: https://rand777.pguide.studio
     avatar: https://avatars.githubusercontent.com/u/91131723?v=4
     desc: True nobility resides in the human's spirit and its boundless intellect.

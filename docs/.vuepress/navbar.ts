@@ -2,14 +2,6 @@ import {defineNavbarConfig} from 'vuepress-theme-plume'
 
 export const navbar = defineNavbarConfig([
     {text: '首页', link: '/'},
-    // {
-    //     icon: '',
-    //     text: '',
-    //     items: [
-    //         {icon: '',text: '',link: ''},
-    //         {icon: '',text: '',link: ''},
-    //     ]
-    // },
     // 学习笔记导航
     {
         icon: '/icon/note.svg',
