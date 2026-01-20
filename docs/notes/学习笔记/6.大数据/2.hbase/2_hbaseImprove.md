@@ -1,7 +1,7 @@
 ---
-title: HBASE核心原理
-icon: streamline-freehand:notes-book
-order: 5
+title: 2、HBASE核心原理
+icon: vscode-icons:file-type-html
+order: 2
 author: bugcode
 date: 2024-12-26T00:00:00.000Z
 category:
@@ -14,7 +14,7 @@ star: true
 footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 15:13:45
-permalink: /learning-notes/3r7jwjmf/
+permalink: /learning-notes/big-data/hbase/HBASE核心原理/
 ---
 
 # HBASE核心原理
@@ -51,7 +51,7 @@ HBase是以 hdfs 为数据存储的，一种分布式、非关系型的、可扩
 
 ## 表数据模型
 
-### Name Space
+### NameSpace
 
 命名空间，类似于关系型数据库的 database 概念，每个命名空间下有多个表；HBase 两个自带的命名空间，分别是 hbase 和 default，hbase 中存放的是 HBase 内置的表，default表是用户默认使用的命名空间
 
@@ -67,7 +67,7 @@ HBase 表中的每行数据都由一个 RowKey 和多个 Column（列）组成�
 
 HBase 中的每个列都由 Column Family(列族)和 Column Qualifier（列限定符）进行限定，例如 info:name，info:age。建表时，只需指明列族，而列限定符无需预先定义
 
-### Time Stamp
+### TimeStamp
 
 用于标识数据的不同版本（version），每条数据写入时，系统会自动为其加上该字段，其值为写入HBase 的时间
 
@@ -85,41 +85,48 @@ HBase 中的每个列都由 Column Family(列族)和 Column Qualifier（列限�
 
 ![](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/image_bc70bd2.png)
 
-行键 Row Key：与nosql数据库一样,rowkey是用来检索记录的主键。访问hbase table中的行，只有三种方式：
+#### 行键 RowKey
+
+与nosql数据库一样,rowkey是用来检索记录的主键。访问hbase table中的行，只有三种方式：
 
 - 通过单个row key访问
 - 通过row key的range
 - 全表扫描
 
-- Row Key 行键可以是任意字符串(最大长度是 64KB，实际应用中长度一般为 10-100bytes)，在hbase内部，rowkey保存为字节数组。Hbase会对表中的数据按照rowkey排序(字典顺序);
-- 存储时，数据按照Row key的字典序(byte order)排序存储。设计key时，要充分排序存储这个特性，将经常一起读取的行存储放到一起。(位置相关性)。
-- 注意： 字典序对int排序的结果是 1,10,100,11,12,13,14,15,16,17,18,19,2,20,21 …
-- 要保持整形的自然序，行键必须用0作左填充。
-- 行的一次读写是原子操作 (不论一次读写多少列)。这个设计决策能够使用户很容易的理解程序在对同一个行进行并发更新操作时的行为。
+Row Key 行键可以是任意字符串(最大长度是 64KB，实际应用中长度一般为 10-100bytes)，在hbase内部，rowkey保存为字节数组。Hbase会对表中的数据按照rowkey排序(字典顺序);
 
-列族 Column Family
+存储时，数据按照Row key的字典序(byte order)排序存储。设计key时，要充分排序存储这个特性，将经常一起读取的行存储放到一起。(位置相关性)。
+
+注意： 字典序对int排序的结果是 1,10,100,11,12,13,14,15,16,17,18,19,2,20,21 …
+
+要保持整形的自然序，行键必须用0作左填充。
+
+行的一次读写是原子操作 (不论一次读写多少列)。这个设计决策能够使用户很容易的理解程序在对同一个行进行并发更新操作时的行为。
+
+#### 列族 Column Family
 
 - HBase表中的每个列，都归属于某个列族。列族是表的schema的一部分(而列不是)，必须在使用表之前定义。
 - 列名都以列族作为前缀。例如 courses:history ， courses:math 都属于 courses 这个列族。
 - 访问控制、磁盘和内存的使用统计都是在列族层面进行的。列族越多，在取一行数据时所要参与IO、搜寻的文件就越多，所以，如果没有必要，不要设置太多的列族。
 
-列 Column
+#### 列 Column
 
 - 列族下面的具体列，属于某一个ColumnFamily，类似于在mysql当中创建的具体的列。
 
-时间戳 Timestamp
+#### 时间戳 Timestamp
 
 - HBase中通过row和columns确定的为一个存贮单元称为cell。每个 cell都保存着同一份数据的多个版本。版本通过时间戳来索引。时间戳的类型是 64位整型。时间戳可以由hbase(在数据写入时自动)赋值，此时时间戳是精确到毫秒的当前系统时间。时间戳也可以由客户显式赋值。如果应用程序要避免数据版本冲突，就必须自己生成具有唯一性的时间戳。每个cell中，不同版本的数据按照时间倒序排序，即最新的数据排在最前面。
 - 为了避免数据存在过多版本造成的的管理 (包括存贮和索引)负担，hbase提供了两种数据版本回收方式：
     - 保存数据的最后n个版本
     - 保存最近一段时间内的版本（设置数据的生命周期TTL）。
-    - 用户可以针对每个列族进行设置。
 
-Cell
+用户可以针对每个列族进行设置。
+
+#### Cell
 
 - 单元 Cell 由{row key, column( = + ), version} 唯一确定的单元。cell中的数据是没有类型的，全部是字节码形式存贮。
 
-版本号 VersionNum
+#### 版本号 VersionNum
 
 - 数据的版本号，每条数据可以有多个版本号，默认值为系统时间戳，类型为Long。
 
@@ -147,6 +154,94 @@ Cell
             - StoreFile(磁盘)
                 - HFile(默认128g)=>hdfs客户端，写入到hdfs中
     - HLog(容错机制，副本机制，保证数据不丢失)
+
+### 物理存储架构
+
+#### 逻辑视图 vs 物理存储
+
+```yaml
+// 逻辑视图（用户看到的）
+Table → Row → Column Family → Column → Version → Value
+
+// 物理存储（实际存储的）
+Namespace → Table → Region → Store → HFile → Block → KeyValue
+```
+
+#### 物理存储架构
+
+```yaml
+HDFS文件系统层：
+/hbase/
+├── data/                           # 数据目录
+│   ├── <namespace>/                # 命名空间
+│   │   ├── <table_name>/           # 表目录
+│   │   │   ├── <region_id>/        # Region目录
+│   │   │   │   ├── <column_family>/ # 列族目录 一个列簇
+│   │   │   │   │   ├── <hfile>     # 数据文件
+│   │   │   │   │   ├── <hfile>     # 数据文件 split出来的多个hfile文件
+│   │   │   │   │   └── .regioninfo # Region元数据
+│   │   │   │   └── .tmp/          # 临时文件
+│   │   │   └── .tableinfo         # 表元数据
+│   │   └── hbase/                  # 系统命名空间
+│   │       ├── meta/              # META表
+│   │       └── namespace/         # 命名空间表
+├── WALs/                          # Write-Ahead Logs
+├── archive/                       # 归档文件
+└── .tmp/                         # 临时文件
+```
+
+1. 每个列族独立存储目录
+2. 目录下是实际的HFile数据文件
+3. 文件命名：[store_file_id].[extension]
+4. 文件按时间戳排序，最新文件编号最大
+
+Store是物理存储的核心单元：
+
+- 包含MemStore（内存）
+- 包含多个StoreFile/HFile（磁盘）
+- 独立的Compaction和Flush策略
+
+#### 优化
+
+存储优化三要素：
+
+1. 压缩：减少磁盘空间（SNAPPY/LZ4推荐）
+2. 编码：减少存储冗余（FAST_DIFF推荐）
+3. 索引：加速查询（BloomFilter推荐）
+
+配置建议：
+
+- 数据块大小：64KB（平衡随机读和扫描）
+- BloomFilter：ROW（通用）或ROWCOL（精确）
+- 压缩算法：根据数据特点选择
+- 版本控制：合理设置TTL和maxVersions
+
+#### 总结
+
+```
+7层存储结构：
+Namespace → Table → Region → Store → HFile → Block → KeyValue
+
+关键特点：
+1. 按列族独立存储：每个CF有自己的目录和文件
+2. 按Region水平分区：数据按RowKey范围分布
+3. 不可变文件：HFile一旦写入不再修改
+4. 多层索引：文件级、块级、行级索引支持快速查找
+
+文件格式:
+
+HFile v2/v3结构：
+1. 数据块区：存储实际KeyValue数据
+2. 元数据区：BloomFilter等
+3. 索引区：数据块和元数据块索引
+4. 文件信息：文件级元数据
+5. 文件尾部：指向各部分的指针
+
+KeyValue结构：
+RowKey + ColumnFamily + ColumnQualifier + Timestamp + Type + Value
+
+"HBase的物理存储是一个高度结构化的多层次体系：数据被水平切分成Region，垂直按列族分离存储，最终以不可变的、索引丰富的HFile格式持久化在HDFS上，通过各种压缩和编码优化实现高效的存储和查询。"
+```
 
 ### HLog(WAL log)
 
@@ -465,7 +560,7 @@ memstore memstore向hdfs中保存数据。两个标注：
 由于memstore每次刷写都会生成一个新的HFile，且同一个字段的不同版本（timestamp） 和不同类型（Put/Delete）有可能会分布在不同的 HFile 中，因此查询时需要遍历所有的 HFile。为了减少 HFile 的个数，以及清理掉过期和删除的数据，会进行 StoreFile Compaction。 Compaction 分为两种，分别是 Minor Compaction（小合并） 和 Major Compaction（大合并）。Minor Compaction 会将临近的若干个较小的 HFile合并成一个较大的 HFile，但不会清理过期和删除的数据。 Major Compaction 会将一个 Store 下的所有的 HFile合并成一个大 HFile，并且会清理掉过期 和删除的数据。
 
 > **当文件数超过三个的时候，走的也是大合并**
->  一个region进行 major compaction合并的周期,在这个点的时候， 这个region下的所有hfile会进行合并,默认是7天,**major compaction非常耗资源,建议生产关闭(设置为0)，在应用空闲时间手动触发**
+> 一个region进行 major compaction合并的周期,在这个点的时候， 这个region下的所有hfile会进行合并,默认是7天,**major compaction非常耗资源,建议生产关闭(设置为0)，在应用空闲时间手动触发**
 
 ```java
  <!-- 一个region进行 major compaction合并的周期,在这个点的时候， 这个region下的所有hfile会进行合并,默认是7天,major   
