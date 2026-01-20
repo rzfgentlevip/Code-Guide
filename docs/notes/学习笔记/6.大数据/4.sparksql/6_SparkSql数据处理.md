@@ -497,7 +497,6 @@ object Test33 {
 
 #### Column对象的创建
 
-![1622857993227](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622857993227.png)
 
 ![1622858025402](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/05/095348-431289.png)
 
@@ -1251,7 +1250,6 @@ groupBy,cube,rollup返回的结果都是RelationalGroupedDataset类型。
 
 #### RelationalGroupedDataset
 
-![1622949559206](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622949559206.png)
 
 ![1622949677863](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/06/112120-734566.png)
 
@@ -1541,7 +1539,6 @@ object Test51 {
 
 显示连接上的部分，右侧表不显示
 
-![1622956632836](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622956632836.png)
 
 ![1622956723389](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/06/131917-72256.png)
 

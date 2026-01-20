@@ -384,7 +384,6 @@ root
 
 ### 向mysql中写入数据
 
-![1622787128726](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622787128726.png)
 
 ![1622787145589](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/04/141227-710951.png)
 
