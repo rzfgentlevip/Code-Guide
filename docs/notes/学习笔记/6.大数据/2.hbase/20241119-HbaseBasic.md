@@ -69,9 +69,7 @@ Hbase的扩展性主要体现在两个方面,**一个是基于上层处理能力
 
 Hbase架构如图所示:
 
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled.png)
-
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled%201.png)
+![](./image/hbase架构.png)
 
 从图中可以看出Hbase是由**Client、Zookeeper、Master、HRegionServer、HDFS**等几个组件组成,下面来介绍一下几个组件的相关功能:
 

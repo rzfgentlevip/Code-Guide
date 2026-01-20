@@ -31,8 +31,6 @@ Spark 分布式计算框架由美国加州⼤学伯克利分校的AMP实验室�
 
 ![image-20241117212849062](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/image-20241117212849062.png)
 
-
-
 ## Spark运行模式
 
 ### 基础概念

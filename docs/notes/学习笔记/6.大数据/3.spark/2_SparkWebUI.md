@@ -299,7 +299,7 @@ JVMHeapSize：jvm的堆内存使⽤情况。 Executor 分配：查看任务Execu
 
 #### Executor个数
 
-建议使⽤动态资源分配(默认开启) 官⽅⽂档link。使它可以根据⼯作负载动态调整应⽤程序占⽤ 的资源。这意味着，如果不再使⽤资源，应⽤程序可能会将资源返回给集群，并在稍后需要时再 次请求资源。如果多个应⽤程序共享Spark集群中的资源，该特性尤其有⽤。Driver会判断如果 没有在taskpending的情况，资源会被释放掉
+建议使⽤动态资源分配(默认开启) ,使它可以根据⼯作负载动态调整应⽤程序占⽤ 的资源。这意味着，如果不再使⽤资源，应⽤程序可能会将资源返回给集群，并在稍后需要时再 次请求资源。如果多个应⽤程序共享Spark集群中的资源，该特性尤其有⽤。Driver会判断如果 没有在taskpending的情况，资源会被释放掉
 
 - spark.dynamicAllocation.enabled=true  ，开启参数
 - spark.dynamicAllocation.minExecutors=5  ，executor最⼩申请个数
@@ -308,12 +308,6 @@ JVMHeapSize：jvm的堆内存使⽤情况。 Executor 分配：查看任务Execu
 - spark.dynamicAllocation.executorIdleTimeout=120s  ，⼀个executor空闲超过 该参数时,⾃动释放资源 ◦ ◦ ◦ 4.
 - spark.dynamicAllocation.schedulerBacklogTimeout  (默认1秒)，如果有task pending超过该参数，开启资源申请
 - spark.dynamicAllocation.sustainedSchedulerBacklogTimeout  (默认等于上 ⾯的参数)，当pendingtask存在以后，每隔该参数进⾏⼀个资源的申请(如果资源有，会以1、 2、4、8指数的申请) spark.shuffle.service.enabled=true  ，在不删除由executors产⽣的shuffle⽂件的 情况下删除executors
-
-#### Spark内存管理
-
-![image-20241118104227748](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/image-20241118104227748.png)
-
-spark.memory.fraction=0.6  统⼀内存占⽐。在shuffle很重、内存很⼤的情况下可以适 当调⼤该参数。
 
 ## SparkSQLJoin原理简介
 
@@ -363,6 +357,15 @@ ShuffledHashJoin触发条件⾮常苛刻，我司有相关优化策略，下⾯�
 
 ## 动态控制spark并⾏度及AE特性 （AdaptiveExecution）
 
+> AE（Spark 3.0+）：动态优化，运行时自适应调整,基于运行时统计信息动态调整执行策略.
+
+Spark AE特性主要包含三大特性:
+1. 自适应 Shuffle 分区 (Coalesce Partitions)
+2. 自适应 Join 策略切换 
+3. 倾斜 Join 优化 (Skew Join)
+
+### 自适应 Shuffle 分区
+
 在RDD操作中可以⾃由的设置每次shuffle算⼦的并⾏度，但在sql语句中并没有提供这样的操作， 只能通过Spark⾃带的是spark.sql.shuffle.partition来控制的，spark默认200，任务从头到尾的所有 shuffle都是这个并⾏度，⽆法⾃由操控。
 
 intel在社区贡献了⾃适应调节的特性，可以让作业根据每次shuffle的数据量⾃⾏调节并⾏度。实 现原理是在每个stage完成后再启动⼀个⼦Job来计算shuffle中间结果量，依此来进⾏调节task个数。
@@ -379,6 +382,9 @@ intel在社区贡献了⾃适应调节的特性，可以让作业根据每次shu
 
 >   需要注意最⼤并⾏度的设置，不要设为2的幂次⽅（收起程序员的强迫症）
 
+
+### 自适应 Join 策略切换
+
 AE还做了shuffle得相关优化：
 
 SortMergeJoin调整为BroadcastJoin
@@ -390,9 +396,10 @@ SortMergeJoin调整为ShuffledHashJoin
 - spark.sql.adaptive.hashJoin.enabled=true  开启后AE会根据task数据量⼤⼩⾃ 动判断能否将SortMergeJoin转换成ShuffledHashJoin。
 - spark.sql.adaptiveHashJoinThreshold=52428800  每个partition的数据量都⼩于 等于该值，则将执⾏计划由SortMergeJoin调整为ShuffledHashJoin，调整后会消除原来耗时 的排序过程。do默认20MB，⻛默认50MB
 
-处理数据倾斜功能。
+### 倾斜 Join 优化 (Skew Join)
 
-- SparkAESkewedJoin优化指南  set spark.sql.adaptive.skewedPartitionFactor=3;
+处理数据倾斜功能,SparkAESkewedJoin优化指南  
+- set spark.sql.adaptive.skewedPartitionFactor=3;
 - set spark.sql.adaptive.skewedPartitionMaxSplits=20;
 - set spark.sql.adaptive.skewedJoin.enabled=true;
 - set spark.sql.adaptive.skewedJoinWithAgg.enabled=true;

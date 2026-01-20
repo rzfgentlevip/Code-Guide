@@ -659,6 +659,20 @@ bypass 运行机制的触发条件如下：
 
 ## Spark 内存管理
 
+### Spark内存演进历史
+
+```shell
+Spark 1.6 之前：静态内存管理（Static Memory Management）
+├── 固定比例划分
+├── 容易 OOM
+└── 无法适应不同任务类型
+
+Spark 1.6+：统一内存管理（Unified Memory Management） ✅
+├── 动态内存边界
+├── 内存借用机制
+└── 适应不同工作负载
+```
+
 ### 堆内和堆外内存规划
 
 作为一个 JVM  进程，Executor  的内存管理建立在 JVM 的内存管理之上，Spark 对 JVM的堆内（On-heap）空间进行了更为详细的分配，以充分利用内存。同时，Spark  引入了堆外（Off-heap）内存，使之可以直接在工作节点的系统内存中开辟空间，进一步优化了内存的使用。堆内内存受到 JVM 统一管理，堆外内存是直接向操作系统进行内存的申请和释放。
@@ -736,13 +750,249 @@ Storage 内存和 Execution 内存都有预留空间，目的是防止 OOM，因
 
 静态内存管理机制实现起来较为简单，但如果用户不熟悉 Spark 的存储机制，或没有根据具体的数据规模和计算任务或做相应的配置，很容易造成”一半海水，一半火焰”的局面，即存储内存和执行内存中的一方剩余大量的空间，而另一方却早早被占满，不得不淘汰或移出旧的内容以存储新的内容。由于新的内存管理机制的出现，这种方式目前已经很少有开发者使用，出于兼容旧版本的应用程序的目的，Spark 仍然保留了它的实现。
 
-#### 堆外内存管理
+#### 统一内存管理
 
 Spark1.6 之后引入的统一内存管理机制，**与静态内存管理的区别在于存储内存和执行内存共享同一块空间，可以动态占用对方的空闲区域**，统一内存管理的堆内内存结构如图所示：
 
+
+##### **统一内存管理结构**
+
 统一内存管理的堆外内存结构如下图所示：
 
-![20211108161951](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108161951.png)
+内存整体结构:
+
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108161951.png)
+
+```shell
+# Executor 总内存分配
++-------------------------------------------------------+
+|                 JVM Heap Memory                       |
+|  +--------------------------------------------------+ |
+|  |        Spark Memory (60%)                        | |
+|  |  +---------------------+-----------------------+ | |
+|  |  |   Execution Memory  |   Storage Memory      | | |
+|  |  |   (执行内存)         |   (存储内存)          | | |
+|  |  |   (Shuffle/Join/Sort)|   (缓存数据/Broadcast)| | |
+|  |  |                     |                       | | |
+|  |  |   ← 可借用 →        |   ← 可借用 →          | | |
+|  |  +---------------------+-----------------------+ | |
+|  |        Reserved Memory (固定300MB)               | |
+|  +--------------------------------------------------+ |
+|         User Memory (用户内存) (40%)                  |
+|         (用户数据结构/Spark内部元数据)                 |
++-------------------------------------------------------+
+|          Off-Heap Memory (堆外内存)                   |
+|         (可选，通过 spark.memory.offHeap.* 配置)      |
++-------------------------------------------------------+
+```
+
+Reserved Memory（保留内存）
+- 固定 300MB，用于 Spark 内部使用
+- 存储 Spark 内部对象，防止 OOM
+- 不可配置，Spark 1.6+ 固定值
+
+User Memory（用户内存）
+- 存储用户定义的数据结构,如：RDD 转换中创建的对象;
+- 总大小 = (Java Heap - Reserved) × (1.0 - spark.memory.fraction)
+- 默认：spark.memory.fraction = 0.6 ,所以 User Memory 占 40% 的可用堆内存
+
+Spark Memory（Spark 内存）,核心工作内存，分为两部分：
+- 总大小 = (Java Heap - Reserved) × spark.memory.fraction;
+- Storage Memory（存储内存）：
+    - 缓存 RDD 数据
+    - 存储 Broadcast 变量
+    - 缓存 Task 结果
+
+- Execution Memory（执行内存）：
+    - Shuffle 中间数据
+    - Join/Sort/Aggregation 的临时数据
+    - 内存不足以放时会溢写到磁盘
+
+##### **内存计算公式**
+
+1. 完整内存计算:
+
+```shell
+# 假设配置：--executor-memory 10G
+
+# 1. 实际可用堆内存（减去 overhead）
+val usableMemory = 10G - spark.executor.memoryOverhead
+
+# 2. Reserved Memory = 300MB (固定)
+
+# 3. 可用内存 = usableMemory - 300MB
+
+# 4. Spark Memory = 可用内存 × spark.memory.fraction (默认0.6)
+val sparkMemory = (usableMemory - 300MB) × 0.6
+
+# 5. User Memory = 可用内存 × (1 - 0.6) = 可用内存 × 0.4
+
+# 6. Storage/Execution 内存初始划分：
+#    Storage = sparkMemory × spark.memory.storageFraction (默认0.5)
+#    Execution = sparkMemory × (1 - 0.5)
+```
+
+Spark Executors完整的可用内存:
+- Executor 总内存 = 堆内存 + Overhead内存 = spark.executor.memory + spark.executor.memoryOverhead
+- Overhead 是 Spark 为 Executor 进程分配的"额外安全垫"内存,这部分内存用于存储非 JVM 堆内的对象;
+
+```shell
+┌─────────────────────────────────────────────┐
+│            Executor 进程总内存                 │
+│  ┌──────────────────────────────────────┐  │
+│  │          JVM Heap Memory             │  │
+│  │   (spark.executor.memory 配置值)      │  │
+│  │  存储：Java对象、Spark数据             │  │
+│  └──────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────┐  │
+│  │         Overhead Memory              │  │
+│  │   (spark.executor.memoryOverhead)    │  │
+│  │  存储：线程栈、NIO Buffer、本地代码等  │  │
+│  └──────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+```
+OverHead包含哪些内容:
+
+```shell
+# Overhead 内存主要存储：
+1. **JVM 自身开销**：
+   - 线程栈（Thread Stack）：每个线程约 1MB
+   - JIT 编译代码缓存
+   - GC 数据结构
+   
+2. **Spark 内部开销**：
+   - 序列化/反序列化缓冲区
+   - Shuffle 网络缓冲区
+   - Direct ByteBuffer（堆外内存）
+   
+3. **操作系统开销**：
+   - 内存映射文件（Memory Mapped Files）
+   - 本地库（Native Libraries）
+   - 文件系统缓存
+```
+
+为什么需要Overhead内存?
+
+```shell
+# 避免 Container 因非堆内存不足而被 YARN/K8s 杀死
+场景：
+1. Executor 堆内存 4G，设置合理
+2. 但 JVM 实际还需要额外 500MB 的非堆内存
+3. 如果没有 Overhead，YARN 会因总内存超限而杀死 Container
+
+# 真实案例：OOM 但不是 Heap OOM
+错误信息：
+"Container killed by YARN for exceeding memory limits"
+但不是 "java.lang.OutOfMemoryError: Java heap space"
+```
+
+**默认计算公式**
+
+```shell
+# Spark 的默认 Overhead 计算策略
+def calculateDefaultOverhead(executorMemoryMB: Long): Long = {
+  val overhead = math.max(
+    384,  // 最小 384MB
+    (0.10 * executorMemoryMB).toLong  // 或堆内存的 10%
+  )
+  overhead
+}
+
+# 示例计算：
+# 情况1：executor-memory = 1g (1024MB)
+overhead = max(384, 0.10 * 1024) = max(384, 102.4) = 384MB
+总内存 = 1024 + 384 = 1408MB
+
+# 情况2：executor-memory = 4g (4096MB)  
+overhead = max(384, 0.10 * 4096) = max(384, 409.6) = 410MB
+总内存 = 4096 + 410 = 4506MB
+
+# 情况3：executor-memory = 10g (10240MB)
+overhead = max(384, 0.10 * 10240) = max(384, 1024) = 1024MB
+总内存 = 10240 + 1024 = 11264MB
+```
+
+**相关参数配置**
+
+```shell
+# 1. 直接指定 Overhead 大小（推荐）
+spark.executor.memoryOverhead=2g
+
+# 2. 使用比例计算（默认）
+spark.executor.memoryOverheadFactor=0.10
+# 或
+spark.executor.memoryOverhead=executorMemory * 0.10
+
+# 3. 最小 Overhead 值
+spark.executor.memoryOverheadMin=384m
+
+# 4. Driver 也有类似的 Overhead
+spark.driver.memoryOverhead=1g
+spark.driver.memoryOverheadFactor=0.10
+```
+
+Overhead vs 堆外内存（Off-Heap）
+
+```shell
+# 两者都超出 JVM 堆，但用途不同：
+
+Overhead 内存：
+┌─────────────────────────────────┐
+│ 由集群管理器（YARN/K8s）监控       │
+│ 用于 JVM/OS/Spark 的额外开销      │
+│ 配置：spark.executor.memoryOverhead │
+└─────────────────────────────────┘
+
+堆外内存：
+┌─────────────────────────────────┐
+│ 由 Spark 管理，JVM 可通过 Unsafe 访问│
+│ 用于存储序列化数据，避免 GC        │
+│ 配置：spark.memory.offHeap.size    │
+└─────────────────────────────────┘
+
+# 关系：Overhead 需要包含堆外内存的大小！
+# 因为 YARN 看到的是进程总内存
+```
+
+Overhead vs Executor 堆内存
+
+```shell
+// 示例：总内存 5G 的分配
+Executor 总内存 = 5G
+├── 堆内存 (spark.executor.memory) = 4G
+│   ├── User Memory = 4G × 0.4 = 1.6G
+│   └── Spark Memory = 4G × 0.6 = 2.4G
+└── Overhead (spark.executor.memoryOverhead) = 1G
+    ├── JVM Overhead = ~300MB
+    ├── Direct Buffers = ~500MB  
+    └── OS/Other = ~200MB
+```
+
+2. 内存溢出（Overhead）计算
+
+```shell
+// Executor 总内存 = executor-memory + memoryOverhead
+// memoryOverhead 默认公式：
+val memoryOverhead = max(384MB, 0.10 × executor-memory)
+
+// 示例：--executor-memory 4G
+// memoryOverhead = max(384MB, 0.10 × 4096MB) = max(384, 409.6) = 410MB
+// 总 YARN 申请内存 = 4096 + 410 = 4506MB ≈ 4.4G
+```
+
+3. 堆外内存配置
+
+```shell
+// 启用堆外内存可以避免 GC 停顿
+spark.memory.offHeap.enabled = true
+spark.memory.offHeap.size = 1g  // 堆外内存大小
+
+// 堆外内存只用于 Execution 和 Storage
+// 不包含 User Memory 和 Reserved Memory
+```
+##### **内存动态调整机制(核心特性)**
+
+存储内存和执行内存
 
 ![20211108162011](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108162011.png)
 
@@ -760,6 +1010,145 @@ Spark1.6 之后引入的统一内存管理机制，**与静态内存管理的区
 凭借统一内存管理机制，Spark 在一定程度上提高了**堆内和堆外内存资源的利用率**，降低了开发者维护 Spark 内存的难度，但并不意味着开发者可以高枕无忧。
 
 如果存储内存的空间太大或者说缓存的数据过多，反而会导致频繁的全量垃圾回收，降低任务执行时的性能，因为缓存的 RDD 数据通常都是长期驻留内存的。所以要想充分发挥 Spark 的性能，需要开发者进一步了解存储内存和执行内存各自的管理方式和实现原理。
+
+##### 内存驱逐策略
+
+```shell
+#Storage 内存被 Execution 借用后：
+# 1. 如果 Storage 需要内存，可以要求 Execution 释放借用的内存
+# 2. Execution 会逐步释放（通过将数据溢写到磁盘）
+# 3. 如果 Storage 缓存了 RDD，可能会被 LRU 淘汰
+
+# 缓存淘汰示例：
+val rdd = sc.textFile("data.txt").cache()
+rdd.count()  # 数据缓存到 Storage
+
+# 当 Execution 需要内存时：
+# 1. 尝试压缩缓存数据
+# 2. 如果还不够，淘汰最近最少使用的 RDD 分区
+# 3. 淘汰时数据不会丢失，下次使用会重新计算
+```
+
+##### 核心内存配置参数
+
+| 配置项                          | 默认值                 | 说明                          | 推荐调优     |
+| :------------------------------ | :--------------------- | :---------------------------- | :----------- |
+| `spark.executor.memory`         | 1g                     | Executor 堆内存大小           | 根据任务调整 |
+| `spark.memory.fraction`         | 0.6                    | Spark 内存占总可用内存比例    | 0.6-0.8      |
+| `spark.memory.storageFraction`  | 0.5                    | Storage 内存占 Spark 内存比例 | 0.3-0.5      |
+| `spark.executor.memoryOverhead` | max(384, 0.1×executor) | 堆外 overhead                 | 增加以避 OOM |
+| `spark.memory.offHeap.enabled`  | false                  | 是否启用堆外内存              | 大内存时启用 |
+| `spark.memory.offHeap.size`     | 0                      | 堆外内存大小                  | 根据需求设置 |
+| `spark.storage.memoryFraction`  | 0.6 (已弃用)           | 旧版存储内存比例              | 使用新版配置 |
+
+##### 常见内存问题及解决方案
+
+**Executor OOM**
+```shell
+# 现象：Executor 崩溃，日志显示 Java heap space
+
+# 解决方案：
+1. 增加 Executor 内存
+   --executor-memory 4g → 8g
+
+2. 增加 memoryOverhead
+   --conf spark.executor.memoryOverhead=2g
+
+3. 减少每个 Task 处理的数据量
+   --conf spark.sql.shuffle.partitions=200 → 400
+
+4. 使用更高效的序列化
+   --conf spark.serializer=org.apache.spark.serializer.KryoSerializer
+```
+
+**GC 时间过长**
+
+```shell
+# 症状：任务停顿，GC 时间占比高
+
+# 解决方案：
+1. 启用堆外内存
+   --conf spark.memory.offHeap.enabled=true
+   --conf spark.memory.offHeap.size=2g
+
+2. 调整 GC 策略
+   --conf spark.executor.extraJavaOptions="-XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=35"
+
+3. 减少对象创建
+   # 避免在循环中创建对象
+   # 使用 mapPartitions 替代 map
+```
+
+**数据倾斜导致 OOM**
+
+```shell
+# 症状：某个 Task 处理数据量远大于其他 Task
+
+# 解决方案：
+1. 加盐处理（两阶段聚合）
+val salted = rdd.map(x => (x._1 + "_" + Random.nextInt(10), x._2))
+               .reduceByKey(_ + _)
+               .map(x => (x._1.split("_")(0), x._2))
+               .reduceByKey(_ + _)
+
+2. 增加分区数
+spark.conf.set("spark.sql.shuffle.partitions", 1000)
+
+3. 使用 Broadcast Join 替代 Shuffle Join
+```
+
+##### 内存优化建议
+
+```shell
+调优步骤：
+1. 基准测试：
+   - 运行任务，记录初始性能
+   - 监控 GC 时间和内存使用
+
+2. 调整内存分配：
+   - 根据任务类型调整 spark.memory.fraction
+   - Shuffle 多：降低 storageFraction
+   - 缓存多：增加 storageFraction
+
+3. 优化数据布局：
+   - 调整分区数，避免数据倾斜
+   - 使用合适的分区器
+
+4. 序列化优化：
+   - 启用 Kryo 序列化
+   - 注册自定义类
+
+5. 堆外内存：
+   - 大内存场景启用堆外内存
+   - 调整堆外内存大小
+
+6. 监控验证：
+   - 对比调优前后性能
+   - 确保稳定性
+```
+
+##### 内存配置原则
+
+```shell
+1. 理解应用特性：
+   - Shuffle 密集型：增加 Execution 内存
+   - 缓存密集型：增加 Storage 内存
+
+2. 避免 OOM：
+   - 合理设置 memoryOverhead
+   - 监控 GC 行为
+   - 使用堆外内存处理大对象
+
+3. 性能优化：
+   - 使用合适的序列化器
+   - 调整分区数避免数据倾斜
+   - 启用 Spark 3.0 AQE 特性
+
+4. 监控调整：
+   - 持续监控内存使用
+   - 根据实际情况调整配置
+   - 建立性能基线
+```
 
 ### 存储内存管理
 
