@@ -433,6 +433,17 @@ ShuffleMapStage 的结束伴随着 shuffle 文件的写磁盘。
 
 ResultStage 基本上对应代码中的action 算子，即将一个函数应用在 RDD 的各个partition的数据集上，意味着一个 job 的运行结束。
 
+> Stage切分点意味着又shuffle操作。
+
+### Spark Shuffle的历史
+
+```shell
+Spark 0.8及以前: Hash Shuffle (已废弃)
+Spark 1.1-1.5: Sort Shuffle (默认) + Tungsten优化
+Spark 1.6+: Sort Shuffle (统一) + Tungsten-sort
+Spark 2.0+: 只有Sort Shuffle，但有两种写入方式
+```
+
 ### HashShuffle 解析
 
 #### 未优化的 HashShuffle
@@ -441,17 +452,63 @@ ResultStage 基本上对应代码中的action 算子，即将一个函数应用�
 
 如下图中有 3 个 Reducer，从 Task 开始那边各自把自己进行 Hash 计算(分区器：hash/numreduce 取模)，分类出 3 个不同的类别，每个 Task 都分成 3 种类别的数据，想把不同的数据汇聚然后计算出最终的结果，所以 Reducer 会在每个 Task 中把属于自己类别的数据收集过来，汇聚成一个同类别的大集合，每 1 个 Task 输出 3 份本地文件，这里有 4 个Mapper Tasks，所以总共输出了 4 个 Tasks x 3 个分类文件 = 12 个本地小文件。
 
-![20211108160144](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108160144.png)
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108160144.png)
 
-#### 优化后的 HashShuffle
+```shell
+Stage 0 (Map Stage)           Stage 1 (Reduce Stage)
++----------------+           +-------------------+
+| Task 0 (Map)   |           | Task 0 (Reduce)   |
+|   Partition 0  | --------> |  读取所有Map输出  |
+|   ↓ 写出到磁盘  |           |   的Key=A的数据   |
++----------------+           +-------------------+
+| Task 1 (Map)   |           | Task 1 (Reduce)   |
+|   Partition 1  | --------> |  读取所有Map输出  |
+|   ↓ 写出到磁盘  |           |   的Key=B的数据   |
++----------------+           +-------------------+
+| Task 2 (Map)   |           | Task 2 (Reduce)   |
+|   Partition 2  | --------> |  读取所有Map输出  |
+|   ↓ 写出到磁盘  |           |   的Key=C的数据   |
++----------------+           +-------------------+
+
+关键点：
+1. Map端：按Key的hash写到不同的分区文件
+2. Reduce端：拉取自己负责的Key的所有数据
+3. 磁盘IO和网络传输是性能瓶颈
+```
+
+> hash是按照Task级别进行的，下游又几个reduce,每一个task就会产生reduce个小文件，所以总的小文件个数就是Task个数*Reduce个数。
+> 
+> 每个Map Task为每个Reduce Task创建一个文件
+> 
+> MapTask数量 = M
+> 
+> ReduceTask数量 = R
+> 
+> Shuffle文件数 = M × R
+
+
+#### 优化后的 HashShuffle【File Consolidation】
 
 优化的 HashShuffle 过程就是启用合并机制，合并机制就是复用 buffer，开启合并机制的配置是 spark.shuffle.consolidateFiles。该参数默认值为 false，将其设置为 true 即可开启优化机制。通常来说，如果我们使用HashShuffleManager，那么都建议开启这个选项。
 
 这里还是有 4 个 Tasks，数据类别还是分成 3 种类型，因为 Hash 算法会根据你的 Key 进行分类，**在同一个进程中**，无论是有多少过 Task，都会把同样的 Key 放在同一个 Buffer 里，然后把 Buffer 中的数据写入以 Core 数量为单位的本地文件中，(一个 Core 只有一种类型的Key 的数据)，每 1 个Task 所在的进程中，分别写入共同进程中的 3 份本地文件，这里有 4 个 Mapper Tasks，所以总共输出是 2 个Cores x 3 个分类文件 = 6 个本地小文件。
 
-![20211108160621](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108160621.png)
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108160621.png)
+
+> 同一个Executor上的Map Task共享输出文件
+> 
+> Executor数量 = E
+> 
+> 每个Executor的Core数 = C 【本质是map任务个数】
+> 
+> Shuffle文件数 = E × R
+> 
+> 缺点：文件数仍然多，IO效率低，已被淘汰。
+
 
 ### SortShuffle 解析
+
+> Spark 1.2+ 默认
 
 #### 普通 SortShuffle
 
@@ -463,13 +520,113 @@ ResultStage 基本上对应代码中的action 算子，即将一个函数应用�
 
 ![20211108160909](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108160909.png)
 
-#### bypass SortShuffle
+**Map过程**
+```shell
+1. 数据进入：Map Task接收上游数据
+2. 内存缓冲：使用AppendOnlyMap或类似结构在内存中累积
+   - 默认缓冲区大小：spark.shuffle.sort.initialBufferSize = 5MB
+3. 判断内存是否足够：
+   - 如果内存足够 → 在内存中排序后溢写到磁盘
+   - 如果内存不足 → 溢写到磁盘文件
+4. 溢写策略：
+   - 每次缓冲区满时，按Key排序后写入临时文件
+   - 可以配置排序算法：快排或Timsort
+5. 最终合并：所有内存数据和临时文件合并成一个**排序后**的输出文件
+6. 生成索引文件：记录每个Reduce分区在数据文件中的偏移量
+```
+
+**Reduce过程**
+
+```shell
+1. 获取Map位置：通过MapOutputTracker获取所有Map输出的位置
+2. 远程获取：向各个Map Task所在的Executor拉取自己分区的数据
+3. 数据合并：
+   - 如果需要排序（如reduceByKey）：对拉取的数据进行归并排序
+   - 如果不需要排序（如groupByKey）：直接合并
+4. 数据传递给Reduce Task处理
+```
+
+**内存管理机制**
+
+```shell
+// Sort Shuffle使用三层内存结构
++---------------------------------------+
+|          Sorting Memory               | ← spark.shuffle.sort.initialBufferSize
+|    (AppendOnlyMap/PartitionedPairBuffer)|
++---------------------------------------+
+|          Aggregation Memory           | ← spark.shuffle.aggregate.memory (如果需要聚合)
+|     (ExternalAppendOnlyMap)           |
++---------------------------------------+
+|          Disk Spill Files             | ← 内存不足时溢写
+|   (spark.local.dir指定的目录)          |
++---------------------------------------+
+
+// 关键配置
+spark.shuffle.spill.initialMemoryThreshold = 5 * 1024 * 1024  // 5MB
+spark.shuffle.spill.batchSize = 10000  // 每次溢写批大小
+```
+
+>  每个Map Task只生成一个数据文件和一个索引文件,文件内部按Key排序或分区ID排序.
+> 
+> MapTask数量 = M
+>
+> ReduceTask数量 = R
+> 
+> Shuffle文件数 = M × 2  
+> 
+> 每个Task: 1个数据文件 + 1个索引文件
+
+
+#### Tungsten-sort Shuffle（Spark 1.5+）
+
+**优化目标**
+
+```shell
+# 解决JVM内存管理和GC开销问题
+1. 堆外内存管理：使用sun.misc.Unsafe直接操作内存
+2. 序列化优化：使用高效的二进制格式
+3. 缓存行友好：优化内存布局减少CPU缓存未命中
+```
+
+**核心改进**
+
+```shell
+# 1. 堆外内存（Off-heap）使用
+- 直接使用操作系统内存，避免GC停顿
+- 通过指针操作内存，效率更高
+
+# 2. 内存编码优化
+- 使用8字节指针代替Java对象引用
+- 紧凑的数据存储格式
+
+#  3. 缓存优化
+- 数据按访问模式排列
+- 减少CPU缓存未命中率
+```
+**启用条件**
+
+```shell
+// 自动启用，当满足以下条件时：
+1. 序列化器支持relocation（如KryoSerializer或Java序列化）
+2. Shuffle不需要聚合操作
+3. 分区数 <= 16777216 (2^24)
+
+// 手动配置：
+spark.shuffle.manager = tungsten-sort  // Spark 1.x
+// Spark 2.0+已统一为Sort Shuffle，内部自动选择策略
+```
+
+#### Bypass Merge Sort Shuffle（特殊场景优化）
 
 bypass 运行机制的触发条件如下：
 
 1. shuffle reduce task 数量小于等于 spark.shuffle.sort.bypassMergeThreshold 参数的值，默认为 200。
-2. 不是聚合类的 shuffle 算子（比如 reduceByKey）。
+2. 不是聚合类的 shuffle 算子（比如 reduceByKey）,不需要map端聚合（如groupByKey）.
+3. 不需要排序输出
 
+**优缺点**
+- 优点：减少排序开销
+- 缺点：每个分区一个临时文件，最后合并
 
 此时 task 会为每个 reduce 端的 task 都创建一个临时磁盘文件，并将数据按 key 进行hash 然后根据 key 的 hash 值，将 key 写入对应的磁盘文件之中。当然，写入磁盘文件时也是先写入内存缓冲，缓冲写满之后再溢写到磁盘文件的。最后，同样会将所有临时磁盘文件都合并成一个磁盘文件，并创建一个单独的索引文件。
 
@@ -478,6 +635,27 @@ bypass 运行机制的触发条件如下：
 而该机制与普通 SortShuffleManager 运行机制的不同在于：**不会进行排序**。也就是说， 启用该机制的最大好处在于，shuffle write 过程中，不需要进行数据的排序操作，也就节省掉了这部分的性能开销。
 
 ![20211108161108](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108161108.png)
+
+> 相当于：Hash Shuffle的文件创建 + Sort Shuffle的最终合并
+
+
+### Shuffle对比
+
+| Shuffle类型       | 适用场景             | 优点                         | 缺点                 | Spark版本        |
+| :---------------- | :------------------- | :--------------------------- | :------------------- | :--------------- |
+| **Hash Shuffle**  | 分区数很少           | 实现简单，无排序开销         | 文件数多，IO性能差   | < 1.2（已废弃）  |
+| **Sort Shuffle**  | 通用场景             | 文件数少，内存使用可控       | 排序开销，CPU占用高  | 1.2+（默认）     |
+| **Tungsten-sort** | 大数据量，追求性能   | 堆外内存，GC友好，高效序列化 | 实现复杂，条件限制多 | 1.5+（内部使用） |
+| **Bypass Sort**   | 分区数<200，无需聚合 | 无排序开销，性能好           | 文件数多，内存使用多 | 1.2+（条件触发） |
+
+**核心优化要点**
+
+1. Shuffle是Spark最昂贵的操作，尽量避免或优化 。
+2. Sort Shuffle是当前标准实现，平衡了性能和稳定性。 
+3. 分区数是关键调优参数，影响并行度和Shuffle效率 。
+4. 监控Shuffle指标是性能调优的基础 。
+5. Spark 3.0的AQE大大简化了Shuffle调优 。
+6. ：能避免Shuffle就避免，不能避免就优化，理解原理是调优的前提。
 
 ## Spark 内存管理
 
