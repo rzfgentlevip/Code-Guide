@@ -191,7 +191,7 @@ Spark On Yarn 有两种模式，一种是 Yarn-client 模式，一种是 Yarn-cl
 
 ## Yarn-Cluster
 
-**在 Yarn-cluster 模式下，driver 运行在 Appliaction Master 上，**Appliaction Master 进程同时负责驱动 Application 和从 Yarn 中申请资源，该进程运行在 Yarn container 内，所以启动 Application Master 的 client 可以立即关闭而不必持续到 Application 的生命周期。
+在 Yarn-cluster 模式下，driver 运行在 Appliaction Master 上，Appliaction Master 进程同时负责驱动 Application 和从 Yarn 中申请资源，该进程运行在 Yarn container 内，所以启动 Application Master 的 client 可以立即关闭而不必持续到 Application 的生命周期。
 
 在YARN-Cluster模式中，当用户向YARN中提交一个应用程序后，YARN将分两个阶段运行该应用程序：
 
@@ -224,6 +224,59 @@ Spark On Yarn 有两种模式，一种是 Yarn-client 模式，一种是 Yarn-cl
 > 1. YarnCluster的Driver是在集群的某一台NM上，但是Yarn-Client就是在RM的机器上；
 > 2. 而Driver会和Executors进行通信，所以Yarn_cluster在提交App之后可以关闭Client，而Yarn-Client不可以；
 > 3. Yarn-Cluster适合生产环境，Yarn-Client适合交互和调试。
+
+**Yarn Client模式**
+```shell
+运行位置：
+├── 客户端机器（你的电脑/提交节点）
+│   └── Driver进程 (包含SparkContext)
+│       ├── 创建DAG
+│       ├── 划分Stage
+│       └── 调度Task
+└── YARN集群
+    ├── ApplicationMaster（轻量级）
+    │   └── 只负责向RM申请Executor资源
+    └── Executor进程
+        └── 执行Task
+
+特点：
+- Driver在客户端运行，SparkContext在客户端
+- ApplicationMaster是一个轻量进程，只负责资源申请
+- 客户端必须保持运行，直到应用结束
+- 任务输出直接显示在客户端控制台
+- 适合交互式开发调试（如spark-shell）
+```
+
+**yarn cluster模式**
+```shell
+运行位置：
+└── YARN集群
+    ├── ApplicationMaster（包含Driver的所有功能）
+    │   └── 实际上就是Driver进程
+    │       ├── 包含SparkContext
+    │       ├── 创建DAG
+    │       ├── 划分Stage
+    │       └── 调度Task
+    └── Executor进程
+        └── 执行Task
+
+特点：
+- Driver和ApplicationMaster合二为一，运行在集群的Container中
+- SparkContext运行在集群内的Driver/AM进程中
+- 客户端提交后即可断开连接
+- 任务输出需要通过日志查看
+- 适合生产环境长时间运行的任务
+```
+**对比**
+
+| 方面                  | YARN Client 模式 | YARN Cluster 模式     |
+| :-------------------- | :--------------- | :-------------------- |
+| **Driver位置**        | 客户端机器       | YARN集群的Container中 |
+| **ApplicationMaster** | 轻量级资源代理   | **就是Driver本身**    |
+| **SparkContext位置**  | 客户端Driver中   | 集群内Driver/AM中     |
+| **客户端依赖**        | 必须保持连接     | 提交后即可断开        |
+| **适用场景**          | 交互式、调试     | 生产环境、批处理      |
+| **日志查看**          | 直接输出到控制台 | 通过YARN日志聚合查看  |
 
 下表是Spark Standalone与Spark On Yarn模式下的比较
 
