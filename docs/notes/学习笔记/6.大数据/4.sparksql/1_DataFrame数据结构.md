@@ -3,60 +3,34 @@ title: 1、DataFrame数据结构
 icon: bi:filetype-sql
 order: 1
 author: bugcode
-date: 2024-11-16T00:00:00.000Z
-category:
-  - 大数据
-  - SPARK
-tag:
-  - spark
-  - 大数据
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 15:13:45
 permalink: /learning-notes/big-data/sparksql/DataFrame数据结构/
 ---
 
-<!-- TOC -->
-
-- [DataFrame](#dataframe)
-    - [DataFrame是什么](#dataframe是什么)
-    - [创建DataFrame](#创建dataframe)
-        - [通过隐式转换](#通过隐式转换)
-        - [通过集合创建](#通过集合创建)
-        - [通过读取外部数据集](#通过读取外部数据集)
-    - [操作DataFrame](#操作dataframe)
-    - [DataSet和DataFrame的区别](#dataset和dataframe的区别)
-    - [Row对象](#row对象)
-    - [RDD、DataFrame和Dataset](#rdddataframe和dataset)
-    - [小结](#小结)
-
-<!-- /TOC -->
-
 ## DataFrame
 
 ### DataFrame是什么
 
-![1622027869159](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/191749-972388.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/191749-972388.png)
 
-![20211116140624](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116140624.png)
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116140624.png)
 
-上图中左侧的RDD[Person]虽然以Person为类型参数，但Spark框架本身不了解Person类的内部结构。而中间的DataFrame却提供了详细的结构信息，使得Spark SQL可以清楚地知道该数据集中包含哪些列，每列的名称和类型各是什么。了解了这些信息之后，Spark SQL的查询优化器就可以进行针对性的优化。后者由于在编译期有详尽的类型信息，编译期就可以编译出更加有针对性、更加优化的可执行代码。
+上图中左侧的RDD[Person]虽然以Person为类型参数，但Spark框架本身不了解Person类的内部结构。而中间的DataFrame却提供了详细的结构信息，使得Spark SQL可以清楚地知道该数据集中包含哪些列，每列的名称和类型各是什么。了解了这些信息之后，Spark SQL的查询优化器就可以进行针对性的优化。**后者由于在编译期有详尽的类型信息，编译期就可以编译出更加有针对性、更加优化的可执行代码**。
 
 **Schema 信息**
 
-查看DataFrame中Schema是什么，执行如下命令：df.schema
+查看DataFrame中Schema是什么，执行如下命令：df.schema。
 
-Schema信息封装在StructType中，包含很多StructField对象
+Schema信息封装在StructType中，包含很多StructField对象。
 
-![20211116140754](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116140754.png)
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116140754.png)
 
 
 **Row**
-DataFrame中每条数据封装在Row中，Row表示每行数据如何构建Row对象：要么是传递value，要么传递Seq，官方实例代码：
+DataFrame中每条数据封装在Row中，Row表示每行数据。如何构建Row对象：要么是传递value，要么传递Seq，官方实例代码：
 
-```java
+```scala
 import org.apache.spark.sql._
 
 // Create a Row from values.
@@ -389,6 +363,8 @@ object Test09 {
 
 ![1622028925177](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/193605-202091.png)
 
+
+### 如何理解Spark中三种数据结构RDD、DataFrame和Dataset关系
 SparkSQL中常见面试题：如何理解Spark中三种数据结构RDD、DataFrame和Dataset关系？
 
 **RDD**

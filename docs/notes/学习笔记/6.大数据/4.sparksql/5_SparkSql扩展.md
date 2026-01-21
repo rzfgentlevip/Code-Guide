@@ -3,53 +3,11 @@ title: 5、SparkSql扩展
 icon: bi:filetype-sql
 order: 5
 author: bugcode
-date: 2024-11-16T00:00:00.000Z
-category:
-  - 大数据
-  - SPARK
-tag:
-  - spark
-  - 大数据
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 15:13:45
 permalink: /learning-notes/big-data/sparksql/SparkSql扩展/
 ---
 
-<!-- TOC -->
-
-- [SparkSql扩展](#sparksql扩展)
-  - [数据源与格式](#数据源与格式)
-    - [DataFrameReader](#dataframereader)
-    - [text数据读取](#text数据读取)
-    - [Json数据读取](#json数据读取)
-    - [CSV格式](#csv格式)
-    - [Parquet数据](#parquet数据)
-    - [jdbc数据](#jdbc数据)
-    - [数据读取框架案例](#数据读取框架案例)
-  - [DataFrameWriter](#dataframewriter)
-  - [Parquet文件格式](#parquet文件格式)
-    - [Parquet文件](#parquet文件)
-    - [写入文件指定分区](#写入文件指定分区)
-  - [JSON格式文件](#json格式文件)
-  - [加载/保存数据-API](#加载保存数据-api)
-    - [Load加载数据](#load加载数据)
-    - [Save保存数据](#save保存数据)
-    - [保存模式（SaveMode）](#保存模式savemode)
-  - [小项目](#小项目)
-    - [数据格式](#数据格式)
-    - [代码实现](#代码实现)
-  - [扩展阅读：Catalyst 优化器](#扩展阅读catalyst-优化器)
-  - [SparkSQL自定义UDF函数](#sparksql自定义udf函数)
-    - [如何自定义函数](#如何自定义函数)
-  - [Spark On Hive](#spark-on-hive)
-    - [HiveOnSpark和SparkOnHive](#hiveonspark和sparkonhive)
-    - [spark-sql中集成Hive](#spark-sql中集成hive)
-    - [Spark代码中集成Hive](#spark代码中集成hive)
-
-<!-- /TOC -->
 
 ## SparkSql扩展
 

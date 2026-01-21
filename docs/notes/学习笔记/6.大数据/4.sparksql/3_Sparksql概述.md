@@ -3,42 +3,10 @@ title: 3、SparkSql概述
 icon: bi:filetype-sql
 order: 3
 author: bugcode
-date: 2024-11-16T00:00:00.000Z
-category:
-  - 大数据
-  - SPARK
-tag:
-  - spark
-  - 大数据
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 15:13:45
 permalink: /learning-notes/big-data/sparksql/SparkSql概述/
 ---
-
-<!-- TOC -->
-
-- [概述](#概述)
-    - [数据分析方式](#数据分析方式)
-        - [命令式](#命令式)
-        - [SQL](#sql)
-        - [小结](#小结)
-    - [Spark Sql历史](#spark-sql历史)
-    - [Spark sql的应用场景](#spark-sql的应用场景)
-        - [结构化数据](#结构化数据)
-        - [半结构化数据](#半结构化数据)
-        - [非结构化数据](#非结构化数据)
-        - [Spark Sql](#spark-sql)
-    - [DataFrame&Dataset](#dataframedataset)
-        - [命令式API使用](#命令式api使用)
-        - [声明式api的使用](#声明式api的使用)
-    - [Catasyst优化器](#catasyst优化器)
-        - [什么是catasyst优化器](#什么是catasyst优化器)
-        - [catasyst的优化步骤](#catasyst的优化步骤)
-
-<!-- /TOC -->
 
 ## 概述
 
@@ -317,25 +285,30 @@ Schema信息封装在StructType中，包含很多StructField对象
 
 #### 什么是catasyst优化器
 
-![1621901599674](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/081320-746534.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/081320-746534.png)
 
-![1621901641194](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/081401-724308.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/081401-724308.png)
 
 #### catasyst的优化步骤
 
-![1621901779564](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/081621-958335.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/081621-958335.png)
 
 执行计划的生成经过四个阶段：解析，优化，生成物理计划，运行，
 
+- 解析：将用户的代码解析为语法树
+- 优化：按照一定的优化规则对语法树进行优化
+- 生成物理计划，在这之前生成的计划都是逻辑计划，没办法直接执行，需要转换为物理计划。
+- 提交到集群执行
+
 **第一步**
 
-![1621901919210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153238-672640.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153238-672640.png)
 
 不管什么语言，编译器在进行编译的时候，首先是进行解析工作，解析为语法树。
 
 **第二步**
 
-![1621901991722](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153239-874331.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153239-874331.png)
 
 生成元数据信息，也就是给相应的数据添加类型信息，进行数据类型的绑定和函数的绑定。
 
@@ -343,9 +316,9 @@ Schema信息封装在StructType中，包含很多StructField对象
 
 优化，按照一定的规则进行优化
 
-![1621902146243](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/082226-545599.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/082226-545599.png)
 
-![1621902240837](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/082401-529264.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/082401-529264.png)
 
 **第四步**
 

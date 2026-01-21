@@ -3,29 +3,10 @@ title: 2、DataSet数据结构
 icon: bi:filetype-sql
 order: 2
 author: bugcode
-date: 2024-11-16T00:00:00.000Z
-category:
-  - 大数据
-  - SPARK
-tag:
-  - spark
-  - 大数据
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 15:13:45
 permalink: /learning-notes/big-data/sparksql/DataSet数据结构/
 ---
-<!-- TOC -->
-
-- [DataSet](#dataset)
-    - [为什么需要Dataset](#为什么需要dataset)
-    - [Dataset是什么](#dataset是什么)
-    - [Dataset底层是什么](#dataset底层是什么)
-    - [RDD、DataFrame、DataSet小结](#rdddataframedataset小结)
-
-<!-- /TOC -->
 
 ## DataSet
 
@@ -38,12 +19,17 @@ spark用于支持这两种方式的api叫做，dataset和dataframe
 Spark在Spark 1.3版本中引入了Dataframe，DataFrame是组织到命名列中的分布式数据集合，但是有如下几点限制：
 
 - **编译时类型不安全**：
-    - Dataframe API不支持编译时安全性，这限制了在结构不知道时操纵数据。
+    - Dataframe API不支持编译时安全性，这限制了在结构不知道时操纵数据。因为Schema 是运行时信息，在编译期间不知道scheme信息。
     - 以下示例在编译期间有效。但是，执行此代码时将出现运行时异常。
 
 ![1622028516170](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/192921-405749.png)
 
 也就是说在编译时检查不出异常，但是在运行的时候会出现异常。
+
+为什么dataframe为什么在运行时候才知道scheme信息，编译时类型不安全？
+1. 数据源的多样性，dataframe的数据源可以有多种，json,jdbc,csv,parquet等多种，因此运行时才能确定数据源的 Schema。
+2. 延迟执行，懒加载，只有直行道Action算子才真正触发计算，转换算子只是创建DAG图逻辑计划。
+
 
 - **无法对域对象（丢失域对象）进行操作**：
     - 将域对象转换为DataFrame后，无法从中重新生成它；
