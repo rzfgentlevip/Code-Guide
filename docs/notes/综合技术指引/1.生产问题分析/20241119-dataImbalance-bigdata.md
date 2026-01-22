@@ -3,14 +3,6 @@ title: 1、Spark数据倾斜处理思路
 icon: material-icon-theme:tilt
 order: 1
 author: bugcode
-date: 2024-11-19T00:00:00.000Z
-category:
-  - PROBLEM
-tag:
-  - problen
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 10:13:29
 permalink: /compre-guide/production-issues/spark数据倾斜处理方案/
@@ -59,15 +51,15 @@ Spark中的分区默认市按照数据的key取hash值进行分区，如果 key�
 
 因此出现数据倾斜的时候，Spark作业看起来会运行得非常缓慢，甚至可能因为某个task处理的数据量过大导致内存溢出。
 
-下图表示发生数据倾斜时每个task上数据的分布情况，hello这个key，在三个节点上对应了总共7条数据，这些数据都会被拉取到同一个task中进行处理；而world和you这两个key分别才对应1条数据，所以另外两个task只要分别处理1条数据即可。此时第一个task的运行时间可能是另外两个task的7倍，而整个stage的运行速度也由运行最慢的那个task所决定。
+下图表示发生数据倾斜时每个task上数据的分布情况，上游数据处理完有100w数据，但是在下游做聚合的时候，一样的key一定会分配到同一个task上执行，加入100w数据中，某一个key对应的数据非常多，那按照keyhash后，数据的分布就如下图所示，这样会导致有一个task上的数据量非常大，从而执行非常慢，而整个stage的运行速度也由运行最慢的那个task所决定。
 
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled.png)
+![](./image/spark数据倾斜示意图.png)
 
 ## **4、如何定位导致数据倾斜的代码**
 
 一个spark application提交后遇到一个Action算子就会生成一个job执行；根据RDD之间的依赖关系分为宽依赖和窄依赖，遇到一个宽依赖就会分为一个stage，Stage是一个TaskSet，将Stage划分的结果发送到不同的Executor执行即为一个Task。注意：Application->Job->Stage->Task每一层都是1对n的关系，通常设置的分区个数就是task并行度的个数。一个application到task的关系可以如下图表示：
 
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled%201.png)
+![](./image/spark任务划分.png)
 
 所以我们在通过spark webui定位数据倾斜发生位置时有几个关注点，job，stage和task，分别从webui上定位执行时间比较长的job,stage和task，然后通过具体的task定位到代码中发生数据倾斜的位置。
 
@@ -84,6 +76,8 @@ Spark中的分区默认市按照数据的key取hash值进行分区，如果 key�
 **方案实现思路**：此时可以评估一下，是否可以通过Hive来进行数据预处理（即通过Hive ETL预先对数据按照key进行聚合，或者是预先和其他表进行join），然后在Spark作业中针对的数据源就不是原来的Hive表了，而是预处理后的Hive表。此时由于数据已经预先进行过聚合或join操作了，那么在Spark作业中也就不需要使用原先的shuffle类算子执行这类操作了。
 
 **方案实现原理**：这种方案从根源上解决了数据倾斜，因为彻底避免了在Spark中执行shuffle类算子，那么肯定就不会有数据倾斜的问题了。但是这里也要提醒一下大家，这种方式属于治标不治本。因为毕竟数据本身就存在分布不均匀的问题，所以Hive ETL中进行group by或者join等shuffle操作时，还是会出现数据倾斜，导致Hive ETL的速度很慢。我们只是把数据倾斜的发生提前到了Hive ETL中，避免Spark程序发生数据倾斜而已。
+
+![](./image/hiveetl处理.png)
 
 **方案优点**：实现起来简单便捷，效果还非常好，完全规避掉了数据倾斜，Spark作业的性能会大幅度提升。
 
@@ -121,7 +115,6 @@ Spark中的分区默认市按照数据的key取hash值进行分区，如果 key�
 
 **方案实践经验**：该方案通常无法彻底解决数据倾斜，因为如果出现一些极端情况，比如某个key对应的数据量有100万，那么无论你的task数量增加到多少，这个对应着100万数据的key肯定还是会分配到一个task中去处理，因此注定还是会发生数据倾斜的。所以这种方案只能说是在发现数据倾斜时尝试使用的第一种手段，尝试去用嘴简单的方法缓解数据倾斜而已，或者是和其他方案结合起来使用。
 
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled%202.png)
 
 ### 5.4、自定义分区
 
@@ -158,6 +151,10 @@ val saltedDF = skewedDF.withColumn( "key" , addSaltUdf(col( "key" ) )))
 // 现在您可以对 saltedDF 执行操作，而不会出现数据倾斜问题
 ```
 
+加盐后计算过程如下:
+
+![](./image/数据倾斜加盐.png)
+
 ### 5.6、**两阶段聚合（局部聚合+全局聚合）**
 
 **方案适用场景**：对RDD执行reduceByKey等聚合类shuffle算子或者在Spark SQL中使用group by语句进行分组聚合时，比较适用这种方案。
@@ -166,16 +163,23 @@ val saltedDF = skewedDF.withColumn( "key" , addSaltUdf(col( "key" ) )))
 
 **方案实现原理**：将原本相同的key通过附加随机前缀的方式，变成多个不同的key，就可以让原本被一个task处理的数据分散到多个task上去做局部聚合，进而解决单个task处理数据量过多的问题。接着去除掉随机前缀，再次进行全局聚合，就可以得到最终的结果。具体原理见下图。
 
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled%203.png)
+![](./image/数据倾斜两阶段聚合.png)
 
 **方案优点**：对于聚合类的shuffle操作导致的数据倾斜，效果是非常不错的。通常都可以解决掉数据倾斜，或者至少是大幅度缓解数据倾斜，将Spark作业的性能提升数倍以上。
 
 **方案缺点**：仅仅适用于聚合类的shuffle操作，适用范围相对较窄。如果是join类的shuffle操作，还得用其他的解决方案。
 
 > 第一步，给RDD中的每个key都打上一个随机前缀。
+> 
 > 第二步，对打上随机前缀的key进行局部聚合。
+> 
 > 第三步，去除RDD中每个key的随机前缀。
+> 
 > 第四步，对去除了随机前缀的RDD进行全局聚合。
+
+**计算示意图如下所示:**
+
+![](./image/两阶段聚合.png)
 
 ### 5.7、**将reduce join转为map join**
 
@@ -183,11 +187,19 @@ val saltedDF = skewedDF.withColumn( "key" , addSaltUdf(col( "key" ) )))
 
 **方案实现思路**：不使用join算子进行连接操作，而使用Broadcast变量与map类算子实现join操作，进而完全规避掉shuffle类的操作，彻底避免数据倾斜的发生和出现。将较小RDD中的数据直接通过collect算子拉取到Driver端的内存中来，然后对其创建一个Broadcast变量；接着对另外一个RDD执行map类算子，在算子函数内，从Broadcast变量中获取较小RDD的全量数据，与当前RDD的每一条数据按照连接key进行比对，如果连接key相同的话，那么就将两个RDD的数据用你需要的方式连接起来。
 
-**方案实现原理**：普通的join是会走shuffle过程的，而一旦shuffle，就相当于会将相同key的数据拉取到一个shuffle read task中再进行join，此时就是reduce join。但是如果一个RDD是比较小的，则可以采用广播小RDD全量数据+map算子来实现与join同样的效果，也就是map join，此时就不会发生shuffle操作，也就不会发生数据倾斜。具体原理如下图所示。**方案优点**：对join操作导致的数据倾斜，效果非常好，因为根本就不会发生shuffle，也就根本不会发生数据倾斜。**方案缺点**：适用场景较少，因为这个方案只适用于一个大表和一个小表的情况。毕竟我们需要将小表进行广播，此时会比较消耗内存资源，driver和每个Executor内存中都会驻留一份小RDD的全量数据。如果我们广播出去的RDD数据比较大，比如10G以上，那么就可能发生内存溢出了。因此并不适合两个都是大表的情况。
+**方案实现原理**：普通的join是会走shuffle过程的，而一旦shuffle，就相当于会将相同key的数据拉取到一个shuffle read task中再进行join，此时就是reduce join。但是如果一个RDD是比较小的，则可以采用广播小RDD全量数据+map算子来实现与join同样的效果，也就是map join，此时就不会发生shuffle操作，也就不会发生数据倾斜。具体原理如下图所示。
 
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled%204.png)
 
-```jsx
+![](./image/数据倾斜广播小表.png)
+
+
+
+**方案优点**：对join操作导致的数据倾斜，效果非常好，因为根本就不会发生shuffle，也就根本不会发生数据倾斜。
+
+**方案缺点**：适用场景较少，因为这个方案只适用于一个大表和一个小表的情况。毕竟我们需要将小表进行广播，此时会比较消耗内存资源，driver和每个Executor内存中都会驻留一份小RDD的全量数据。如果我们广播出去的RDD数据比较大，比如10G以上，那么就可能发生内存溢出了。因此并不适合两个都是大表的情况。
+
+
+```scala
 // 首先将数据量比较小的RDD的数据，collect到Driver中来。
 // 然后使用Spark的广播功能，将小RDD的数据转换成广播变量，这样每个Executor就只有一份RDD的数据。
 // 可以尽可能节省内存空间，并且减少网络传输性能开销。
@@ -218,13 +230,15 @@ val saltedDF = skewedDF.withColumn( "key" , addSaltUdf(col( "key" ) )))
 - 而另外两个普通的RDD就照常join即可。
 - 最后将两次join的结果使用union算子合并起来即可，就是最终的join结果。
 
+
 **方案实现原理**：对于join导致的数据倾斜，如果只是某几个key导致了倾斜，可以将少数几个key分拆成独立RDD，并附加随机前缀打散成n份去进行join，此时这几个key对应的数据就不会集中在少数几个task上，而是分散到多个task进行join了。具体原理见下图。
+
+![](./image/随机采样加前缀.png)
 
 **方案优点**：对于join导致的数据倾斜，如果只是某几个key导致了倾斜，采用该方式可以用最有效的方式打散key进行join。而且只需要针对少数倾斜key对应的数据进行扩容n倍，不需要对全量数据进行扩容。避免了占用过多内存。
 
 **方案缺点**：如果导致倾斜的key特别多的话，比如成千上万个key都导致数据倾斜，那么这种方式也不适合。
 
-![Untitled](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/Untitled%205.png)
 
 ```java
 // 首先从包含了少数几个导致数据倾斜key的rdd1中，采样10%的样本数据。
@@ -283,6 +297,10 @@ val nonSkewedData = s kewedDF.filter(!col( "key" ).isin(skewedKeys: _*))
 
 **方案实现原理**：将原先一样的key通过附加随机前缀变成不一样的key，然后就可以将这些处理后的“不同key”分散到多个task中去处理，而不是让一个task处理大量的相同key。该方案与“解决方案六”的不同之处就在于，上一种方案是尽量只对少数倾斜key对应的数据进行特殊处理，由于处理过程需要扩容RDD，因此上一种方案扩容RDD后对内存的占用并不大；而这一种方案是针对有大量倾斜key的情况，没法将部分key拆分出来进行单独处理，因此只能对整个RDD进行数据扩容，对内存资源要求很高。
 
+
+**方案实现过程:**
+![](./image/采样法.png)
+
 **方案优点**：对join类型的数据倾斜基本都可以处理，而且效果也相对比较显著，性能提升效果非常不错。
 
 **方案缺点**：该方案更多的是缓解数据倾斜，而不是彻底避免数据倾斜。而且需要对整个RDD进行扩容，对内存资源要求很高。
@@ -300,6 +318,9 @@ val nonSkewedData = s kewedDF.filter(!col( "key" ).isin(skewedKeys: _*))
 ### 5.10、**多种方案组合使用**
 
 在实践中发现，很多情况下，如果只是处理较为简单的数据倾斜场景，那么使用上述方案中的某一种基本就可以解决。但是如果要处理一个较为复杂的数据倾斜场景，那么可能需要将多种方案组合起来使用。比如说，我们针对出现了多个数据倾斜环节的Spark作业，可以先运用解决方案一和二，预处理一部分数据，并过滤一部分数据来缓解；其次可以对某些shuffle操作提升并行度，优化其性能；最后还可以针对不同的聚合或join操作，选择一种方案来优化其性能。大家需要对这些方案的思路和原理都透彻理解之后，在实践中根据各种不同的情况，灵活运用多种方案，来解决自己的数据倾斜问题。
+
+
+### 5.11、如何看spark webUi中sql执行计划
 
 `scan`：从hive，kudu`读取数据`
 
