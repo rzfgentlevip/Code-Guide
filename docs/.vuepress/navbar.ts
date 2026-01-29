@@ -821,7 +821,7 @@ export const navbar = defineNavbarConfig([
                     {
                         icon: 'catppuccin:devcontainer',
                         text: 'Flink面试指南',
-                        link: ' /compre-guide/interview/flink/',
+                        link: '/compre-guide/interview/flink/',
                         badge: 'Flink'
                     },
                     {
