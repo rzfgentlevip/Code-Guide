@@ -70,16 +70,16 @@ export default defineThemeConfig({
      * 公告板
      * @see https://theme-plume.vuejs.press/guide/features/bulletin/
      */
-    bulletin: {
-        layout: 'top-right',
-        title: '项导文档说明',
-        contentType: 'markdown',
-        content: `\
-            **2025-08-17**        
-            - 已迁移至 [docs.code-guide](https://github.com/PGuideDev/PGuide-Docs)
-            `
-        ,
-    },
+    // bulletin: {
+    //     layout: 'top-right',
+    //     title: '项导文档说明',
+    //     contentType: 'markdown',
+    //     content: `\
+    //         **2025-08-17**
+    //         - 已迁移至 [docs.code-guide](https://github.com/PGuideDev/PGuide-Docs)
+    //         `
+    //     ,
+    // },
 
     /* 过渡动画 @see https://theme-plume.vuejs.press/config/basic/#transition */
     transition: {

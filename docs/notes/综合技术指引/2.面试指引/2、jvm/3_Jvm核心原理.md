@@ -1,97 +1,13 @@
 ---
-title: JVM手册(提高)
+title: 3、Jvm核心原理
 icon: catppuccin:java
-order: 2
+order: 3
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
-category:
-  - 面试
-  - JVM
-tag:
-  - 面试
-  - jvm
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 11:14:44
-permalink: /compre-guide/interview/jvm/jvm提高/
+permalink: /compre-guide/interview/jvm/Jvm核心原理/
 ---
-<!-- TOC -->
-
-- [**Jvm手册(提高)**](#jvm手册提高)
-    - [**你都有哪些手段用来排查内存溢出？**](#你都有哪些手段用来排查内存溢出)
-    - [GC的三种收集方法：标记清除，复制算法，标记整理算法的原理和特点，分别使用在内存的哪一个区域，如果让你优化收集方法，有什么思路？](#gc的三种收集方法标记清除复制算法标记整理算法的原理和特点分别使用在内存的哪一个区域如果让你优化收集方法有什么思路)
-        - [标记清除算法](#标记清除算法)
-        - [**复制算法**](#复制算法)
-        - [**标记整理算法**](#标记整理算法)
-        - [**分代收集算法**](#分代收集算法)
-    - [垃圾收集器简单介绍](#垃圾收集器简单介绍)
-    - [**生产上如何配置垃圾收集器？**](#生产上如何配置垃圾收集器)
-    - [**假如生产环境 CPU 占用过高，请谈谈你的分析思路和定位**](#假如生产环境-cpu-占用过高请谈谈你的分析思路和定位)
-    - [Jvm调优工具又哪些？各自的作用又是什么（重点）](#jvm调优工具又哪些各自的作用又是什么重点)
-    - [对于 JDK 自带的监控和性能分析工具用过哪些？](#对于-jdk-自带的监控和性能分析工具用过哪些)
-    - [**什么情况下会发生栈内存溢出？**](#什么情况下会发生栈内存溢出)
-    - [**JIT是什么**](#jit是什么)
-    - [简述分代垃圾回收器工作流程](#简述分代垃圾回收器工作流程)
-    - [垃圾收集器介绍](#垃圾收集器介绍)
-        - [Serial 回收器（串行回收）](#serial-回收器串行回收)
-            - [特点](#特点)
-            - [Serial **回收器的优势**](#serial-回收器的优势)
-        - [ParNew 回收器（并行回收）](#parnew-回收器并行回收)
-            - [特点](#特点-1)
-            - [Parnew 回收器与Serial回收器的比较](#parnew-回收器与serial回收器的比较)
-        - [Parallel回收器（吞吐量优先）](#parallel回收器吞吐量优先)
-            - [Parallel Scavenge **回收器：吞吐量优先**](#parallel-scavenge-回收器吞吐量优先)
-            - [Parallel Scavenge回收器参数设置](#parallel-scavenge回收器参数设置)
-        - [CMS回收器（低延迟/低暂停时间回收器）](#cms回收器低延迟低暂停时间回收器)
-            - [cms回收器](#cms回收器)
-            - [cms工作原理](#cms工作原理)
-            - [cms分析](#cms分析)
-            - [CMS的优缺点分析](#cms的优缺点分析)
-            - [CMS参数配置](#cms参数配置)
-            - [小结](#小结)
-            - [JDK后续版本中，CMS的变化](#jdk后续版本中cms的变化)
-    - [G1回收器（区域式垃圾回收）](#g1回收器区域式垃圾回收)
-        - [为什么需要G1垃圾回收器](#为什么需要g1垃圾回收器)
-        - [为什么叫做Garbage First(G1)垃圾回收器呢？](#为什么叫做garbage-firstg1垃圾回收器呢)
-        - [G1回收器的优势](#g1回收器的优势)
-        - [可预测的停顿时间模型](#可预测的停顿时间模型)
-        - [G1 回收器的缺点](#g1-回收器的缺点)
-        - [G1参数设置](#g1参数设置)
-        - [G1 收集器的常见操作步骤](#g1-收集器的常见操作步骤)
-        - [G1的适用场景](#g1的适用场景)
-        - [分区Region](#分区region)
-        - [G1垃圾回收的流程](#g1垃圾回收的流程)
-        - [Remembered Set（记忆集）](#remembered-set记忆集)
-        - [G1回收过程一：年轻代 GC](#g1回收过程一年轻代-gc)
-        - [G1回收过程三：混合回收过程](#g1回收过程三混合回收过程)
-        - [G1回收可选的过程四：Full GC](#g1回收可选的过程四full-gc)
-        - [G1补充](#g1补充)
-    - [垃圾回收总结](#垃圾回收总结)
-        - [7种垃圾回收器的比较](#7种垃圾回收器的比较)
-        - [怎么选择垃圾回收器](#怎么选择垃圾回收器)
-    - [你使用过 G1 垃圾回收器的哪几个重要参数？](#你使用过-g1-垃圾回收器的哪几个重要参数)
-    - [**有什么堆外内存的排查思路？**](#有什么堆外内存的排查思路)
-    - [safepoint 是什么？](#safepoint-是什么)
-    - [Minor GC,Major GC 和Full GC分别发生在什么时候，各有什么特点？](#minor-gcmajor-gc-和full-gc分别发生在什么时候各有什么特点)
-    - [详细说一下CMS的回收过程？CMS的问题是什么？](#详细说一下cms的回收过程cms的问题是什么)
-    - [详细说一下G1的回收过程？](#详细说一下g1的回收过程)
-    - [JVM中一次完整的GC是什么样子的？](#jvm中一次完整的gc是什么样子的)
-    - [新生代中区分Eden和Survivor的作用是什么](#新生代中区分eden和survivor的作用是什么)
-    - [Minor GC 和 Full GC 有什么不同呢？](#minor-gc-和-full-gc-有什么不同呢)
-    - [介绍下空间分配担保原则？](#介绍下空间分配担保原则)
-    - [简述GC中Stop the world（重点）](#简述gc中stop-the-world重点)
-    - [**什么是内存溢出，什么是内存泄漏，有什么区别**](#什么是内存溢出什么是内存泄漏有什么区别)
-    - [常用 GC 调优策略有哪些？](#常用-gc-调优策略有哪些)
-        - [GC 调优原则](#gc-调优原则)
-        - [GC 调优目的](#gc-调优目的)
-        - [GC 调优策略](#gc-调优策略)
-    - [GC的两种判定方法，以及各有什么特点](#gc的两种判定方法以及各有什么特点)
-
-<!-- /TOC -->
-
-# **Jvm手册(提高)**
 
 ## **你都有哪些手段用来排查内存溢出？**
 
@@ -99,11 +15,15 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 内存溢出包含很多种情况，我在平常工作中遇到最多的就是堆溢出。有一次线上遇到故障，重新启动后，使用 jstat 命令，发现 Old 区一直在增长。我使用 jmap 命令，导出了一份线上堆栈，然后使用 MAT 进行分析，通过对 GC Roots 的分析，发现了一个非常大的 HashMap 对象，这个原本是其他同事做缓存用的，但是一个无界缓存，造成了堆内存占用一直上升，后来，将这个缓存改成 guava 的 Cache，并设置了弱引用，故障就消失了。
 
+生产环境中遇到两种情况的OOM:
+1. java进程堆内存区域发生OOM；
+2. docker或者k8s容器中启动java进程，触发内存告警或者内存沾满导致容器重启;
+
+
+
 ## GC的三种收集方法：标记清除，复制算法，标记整理算法的原理和特点，分别使用在内存的哪一个区域，如果让你优化收集方法，有什么思路？
 
 ### 标记清除算法
-
-**标记清除法**：
 
 第一步：利用可达性去遍历内存，把存活对象和垃圾对象进行标记；
 
@@ -113,13 +33,13 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 ### **复制算法**
 
-将内存分为大小相同的两块，每次使用其中的一块。当这一块的内存使用完后，就将还存活的对象复制到另一块去，然后再把使用的空间一次清理掉。这样就使每次的内存回收都是对内存区间的一半进行回收 ， 特点：不会产生空间碎片；内存使用率极低；
+将内存分为大小相同的两块，每次使用其中的一块。当这一块的内存使用完后，就将还存活的对象复制到另一块去，然后再把使用的空间一次清理掉。这样就使每次的内存回收都是对内存区间的一半进行回收。
+
+特点：不会产生空间碎片；内存使用率极低；
 
 > 典型的以空间换取时间效率的算法。
 
 ### **标记整理算法**
-
-**标记整理法**：
 
 第一步：利用可达性去遍历内存，把存活对象和垃圾对象进行标记；
 
@@ -137,9 +57,11 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 老年代中因为对象的存活率极高，没有额外的空间对他进行分配担保，所以采用标记清理或者标记整理[算法]()进行回收；
 
-**算法对比**
+**复制算法&标记清除&标记整理**
 
 ![1644327411524](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/213652-515303.png)
+
+**不同垃圾收集器作用区域**
 
 ![1644320247502](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/193729-4824.png)
 
@@ -149,7 +71,7 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 -  老年代的回收算法有 Serial old、Parallel Old，CMS 等，主要使用标记清除、标记整理算法等。
 
-我们线上使用较多的是 G1，也有年轻代和老年代的概念，不过它是一个整堆回收器，它的回收对象是小堆区 。
+我们线上使用较多的是G1，也有年轻代和老年代的概念，不过它是一个整堆回收器，它的回收对象是小堆区。
 
 ## 垃圾收集器简单介绍
 
@@ -170,7 +92,7 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 **垃圾回收器间的配合使用图：**
 
-![1644327500492](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/213821-862614.png)
+![](./image/不同垃圾收集器作用区域.png)
 
 **各个垃圾回收器对比**：
 
@@ -178,9 +100,226 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 ## **生产上如何配置垃圾收集器？**
 
-![1644320354399](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/193915-922629.png)
+### 生产环境GC配置原则
+
+原则1：了解你的应用
+- 吞吐量优先还是延迟敏感？
+- 内存使用模式？
+- 对象生命周期特点？
+
+原则2：基于数据做决策
+- 收集性能指标
+- A/B测试验证
+- 监控调整
+
+原则3：渐进式调优
+- 一次只调整一个参数
+- 保留基线配置
+- 逐步优化
+
+原则4：预留安全边际
+- 避免参数过于激进
+- 考虑流量峰值
+- 预留缓冲空间
 
 
+**决策流程图**
+
+```mermaid
+graph TD
+    A[生产环境应用] --> B{分析应用特征}
+    
+    B --> C[批处理/计算密集型]
+    B --> D[Web服务/API]
+    B --> E[实时/低延迟系统]
+    
+    C --> F[吞吐量优先]
+    D --> G[平衡型]
+    E --> H[延迟敏感]
+    
+    F --> I[堆大小 < 8GB?]
+    I -->|是| J[Parallel GC]
+    I -->|否| K[G1 GC]
+    
+    G --> L[G1 GC<br/>默认200ms停顿目标]
+    
+    H --> M{堆大小?}
+    M -->|≤4GB| N[ZGC<br/>亚毫秒停顿]
+    M -->|4-32GB| O[ZGC/Shenandoah]
+    M -->|>32GB| P[ZGC]
+    
+    J --> Q[调优验证]
+    K --> Q
+    L --> Q
+    N --> Q
+    O --> Q
+    P --> Q
+    
+    Q --> R[监控投产]
+```
+
+### 中小型Web应用（堆内存≤8GB）
+
+```shell
+# 场景：Spring Boot微服务，4核8G服务器，堆内存4GB
+# 目标：平衡吞吐量和响应时间
+
+#!/bin/bash
+# application_gc_config.sh
+
+JAVA_OPTS="
+# 基础配置
+-server
+-Xms2g
+-Xmx2g                    # 堆固定大小，避免动态调整开销
+-XX:MetaspaceSize=256m
+-XX:MaxMetaspaceSize=256m # 元空间固定，避免Full GC
+
+# 使用G1收集器（JDK 8u40+或JDK 11+）
+-XX:+UseG1GC
+
+# G1核心配置
+-XX:MaxGCPauseMillis=200   # 目标停顿时间200ms
+-XX:G1HeapRegionSize=4m    # Region大小，4GB堆建议4m
+-XX:InitiatingHeapOccupancyPercent=45  # 并发标记触发阈值
+-XX:G1ReservePercent=15    # 预留空间，防止晋升失败
+
+# 并行度配置（4核CPU）
+-XX:ParallelGCThreads=4    # STW阶段并行线程数
+-XX:ConcGCThreads=2        # 并发标记线程数
+
+# 内存优化
+-XX:+UseStringDeduplication      # 字符串去重
+-XX:StringDeduplicationAgeThreshold=3
+
+# 日志与监控
+-XX:+PrintGCDetails
+-XX:+PrintGCDateStamps
+-XX:+PrintTenuringDistribution
+-XX:+PrintAdaptiveSizePolicy
+-Xloggc:/var/log/myapp/gc.log
+-XX:+UseGCLogFileRotation
+-XX:NumberOfGCLogFiles=10
+-XX:GCLogFileSize=10M
+
+# 故障诊断
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath=/var/log/myapp/heapdump.hprof
+-XX:ErrorFile=/var/log/myapp/hs_err_pid%p.log
+"
+```
+
+### 大数据/批处理应用（高吞吐量）
+
+```shell
+# 场景：Spark/Flink作业，16核32G服务器，堆内存16GB
+# 目标：最大化吞吐量，可以容忍较长停顿
+
+#!/bin/bash
+# batch_job_gc_config.sh
+
+JAVA_OPTS="
+# 基础配置
+-server
+-Xms12g
+-Xmx12g                    # 大作业需要大堆
+-XX:NewRatio=2             # 老年代:新生代=2:1
+-XX:SurvivorRatio=8        # Eden:Survivor=8:1:1
+
+# 使用Parallel GC（吞吐量优先）
+-XX:+UseParallelGC
+-XX:+UseParallelOldGC
+
+# 并行度配置（16核CPU）
+-XX:ParallelGCThreads=8    # 设为CPU核心数一半，留资源给应用
+-XX:ConcGCThreads=2
+
+# 吞吐量优化
+-XX:MaxGCPauseMillis=500   # 批处理可容忍较长停顿
+-XX:GCTimeRatio=19         # 目标GC时间占比5%
+-XX:+UseAdaptiveSizePolicy # 自适应调整（Parallel GC特有）
+
+# 晋升优化
+-XX:MaxTenuringThreshold=15
+-XX:TargetSurvivorRatio=50
+
+# 大对象优化
+-XX:PretenureSizeThreshold=1M  # >1MB对象直接进老年代
+
+# 日志配置（简化的批处理日志）
+-XX:+PrintGC
+-XX:+PrintGCDateStamps
+-Xloggc:/data/logs/batch_gc.log
+"
+
+# Spark作业特定配置
+SPARK_OPTS="
+--driver-memory 8g
+--executor-memory 12g
+--conf spark.executor.extraJavaOptions='$JAVA_OPTS'
+--conf spark.driver.extraJavaOptions='$JAVA_OPTS'
+"
+```
+
+### 低延迟交易系统（金融/游戏）
+
+```shell
+# 场景：高频交易系统，32核64G服务器，堆内存32GB
+# 目标：亚毫秒级停顿，99.9%延迟<10ms
+
+#!/bin/bash
+# low_latency_gc_config.sh
+
+JAVA_OPTS="
+# 基础配置
+-server
+-Xms24g
+-Xmx24g
+-XX:+AlwaysPreTouch         # 启动时预分配物理内存，避免运行时缺页
+
+# 使用ZGC（JDK 11+）或 Shenandoah（JDK 12+）
+# 方案A：ZGC（推荐JDK 15+）
+-XX:+UseZGC
+-XX:+ZGenerational           # JDK 21+启用分代ZGC
+-XX:ZAllocationSpikeTolerance=5.0  # 分配峰值容忍度
+-XX:ZCollectionInterval=10   # 主动GC间隔（秒），-1禁用
+
+# 方案B：Shenandoah（如JDK 11且需要低延迟）
+# -XX:+UseShenandoahGC
+# -XX:ShenandoahGCHeuristics=adaptive  # 自适应启发式
+# -XX:ShenandoahGuaranteedGCInterval=10000  # 保证GC间隔（毫秒）
+
+# 停顿时间控制
+-XX:MaxGCPauseMillis=10      # 目标最大停顿10ms（ZGC通常<1ms）
+-XX:+ZProactive              # 启用主动GC（ZGC）
+-XX:+ZUncommit               # 返还未用内存给OS
+
+# 内存与线程配置
+-XX:ConcGCThreads=4          # 并发GC线程
+-XX:ParallelGCThreads=8      # 并行GC线程
+-XX:+UseLargePages           # 使用大页，减少TLB miss
+-XX:+UseTransparentHugePages # 透明大页（Linux）
+
+# 监控与诊断
+-XX:+PerfDisableSharedMem    # 禁用perf共享内存，减少开销
+-XX:+UnlockDiagnosticVMOptions
+-XX:+ZStatistics             # ZGC统计信息
+-XX:+FlightRecorder          # 启用JFR
+-XX:StartFlightRecording=duration=60s,filename=/tmp/jfr.jfr
+
+# 日志配置
+-Xlog:gc*,gc+heap=debug,gc+stats=debug:file=/var/log/app/zgc.log
+"
+
+# 操作系统级别优化（需要root权限）
+# echo never > /sys/kernel/mm/transparent_hugepage/enabled
+# echo 1 > /proc/sys/vm/overcommit_memory
+# ulimit -n 1000000
+```
+
+**系统考核指标**
+
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/193915-922629.png)
 
 首先是内存大小问题，基本上每一个内存区域我都会设置一个上限，来避免溢出问题，比如元空间。通常，堆空间我会设置成操作系统的 2/3，超过 8GB 的堆，优先选用 G1。
 
@@ -192,11 +331,7 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 ## **假如生产环境 CPU 占用过高，请谈谈你的分析思路和定位**
 
-
-
 ![1644320472870](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/194113-229751.png)
-
-
 
 首先，使用 top -H 命令获取占用 CPU 最高的线程，并将它转化为十六进制。
 
@@ -234,7 +369,420 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 
 ## **JIT是什么**
 
+### 什么是JIT？
+
 为了提高热点代码的执行效率，在运行时，虚拟机将会把这些代码编译成与本地平台相关的机器码，并进行各种层次的优化，完成这个任务的编译器，就称为即时编译器（Just In Time Compiler），简称 JIT 编译器。
+
+> JIT（Just-In-Time Compiler，即时编译器） 是JVM的核心组件，负责在运行时将Java字节码编译成本地机器码，从而显著提升执行性能。
+
+```shell
+Java程序执行流程对比:
+
+传统解释执行（慢）：
+.java → 编译 → .class → JVM解释执行 → 逐条执行字节码
+
+JIT编译执行（快）：
+.java → 编译 → .class → JVM解释执行 → 热点代码 → JIT编译 → 本地机器码 → 直接执行
+```
+
+### JIT的设计哲学
+
+> JIT的核心理念：运行时优化
+
+1. 延迟编译（运行时决定）
+   - 优势：基于实际运行数据进行优化
+   - 对比：AOT（Ahead-Of-Time）提前编译
+
+2. 热点探测（HotSpot名称由来）
+   - 只编译频繁执行的代码
+   - "20%的代码占用了80%的执行时间"
+
+3. 分层编译（Tiered Compilation）
+   - 不同优化级别，渐进式优化
+   - C1（客户端编译器）：快速启动
+   - C2（服务器编译器）：深度优化
+
+4. 基于性能分析（Profile-Guided Optimization, PGO）
+   - 运行时收集数据，优化编译决策
+
+
+### JVM中的JIT架构
+
+#### HotSpot JVM的JIT架构
+
+```java
+// HotSpot JVM的JIT实现架构
+class HotSpotJITArchitecture {
+private:
+    // 1. 解释器（Interpreter）
+    //    负责执行字节码，收集性能数据
+    Interpreter* _interpreter;
+    
+    // 2. 编译器线程（CompilerThread）
+    //    后台编译热点方法
+    CompilerThread* _compiler_threads;
+    
+    // 3. 编译队列（CompileQueue）
+    //    待编译方法队列
+    CompileQueue* _compile_queue;
+    
+    // 4. 代码缓存（Code Cache）
+    //    存储编译后的机器码
+    CodeCache* _code_cache;
+    
+    // 5. 性能计数器（Performance Counters）
+    //    方法调用计数、循环执行计数
+    MethodCounters* _method_counters;
+};
+```
+
+#### JIT工作流程
+
+```shell
+JIT完整工作流程：
+┌─────────────────────────────────────────────────────┐
+│ 阶段1：解释执行                                      │
+│  • 启动时所有方法解释执行                            │
+│  • 收集性能数据：调用次数、循环执行次数              │
+│  • 识别热点方法                                      │
+├─────────────────────────────────────────────────────┤
+│ 阶段2：热点检测                                      │
+│  • 方法调用计数器：>10000次（默认）                  │
+│  • 回边计数器（循环）：>10000次（默认）              │
+│  • 达到阈值的方法加入编译队列                        │
+├─────────────────────────────────────────────────────┤
+│ 阶段3：排队编译                                      │
+│  • 编译器线程从队列获取方法                          │
+│  • 选择编译级别：C1或C2                              │
+│  • 开始编译                                          │
+├─────────────────────────────────────────────────────┤
+│ 阶段4：编译优化                                      │
+│  • 进行各种优化：内联、逃逸分析、锁消除等            │
+│  • 生成机器码                                        │
+│  • 替换方法的入口点（On-Stack Replacement）         │
+├─────────────────────────────────────────────────────┤
+│ 阶段5：执行优化代码                                  │
+│  • 后续调用直接执行机器码                            │
+│  • 继续收集运行时数据                                │
+│  • 可能触发去优化（Deoptimization）                  │
+└─────────────────────────────────────────────────────┘
+```
+
+### JIT优势
+
+| 维度         | 解释执行           | JIT编译                    | 优势倍数 |
+| :----------- | :----------------- | :------------------------- | :------- |
+| **执行速度** | 慢（字节码解释）   | 快（直接机器码）           | 10-100倍 |
+| **内存访问** | 间接（通过解释器） | 直接（机器码寻址）         | 5-20倍   |
+| **CPU缓存**  | 利用率低           | 利用率高（代码紧凑）       | 3-10倍   |
+| **优化能力** | 无                 | 深度优化（内联、向量化等） | 2-50倍   |
+| **启动时间** | 快（无编译）       | 稍慢（需要编译）           | -        |
+| **内存占用** | 低                 | 稍高（代码缓存）           |          |
+
+### JIT核心技术：分层编译与优化
+
+#### 分层编译（Tiered Compilation）
+
+```java
+// HotSpot的分层编译实现
+class TieredCompilation {
+    enum CompilationLevel {
+        // 第0层：解释执行
+        Tier0 = 0,      // 纯解释器
+        
+        // 第1层：C1编译器（客户端编译器）
+        Tier1 = 1,      // 简单编译，无性能分析
+        Tier2 = 2,      // 带调用和回边计数的编译
+        Tier3 = 3,      // 带完整性能分析的编译
+        
+        // 第2层：C2编译器（服务器编译器）
+        Tier4 = 4       // 完全优化编译
+    };
+    
+    // 编译级别切换决策
+    CompilationLevel selectCompilationLevel(Method* method) {
+        // 基于方法特征和运行数据决策
+        
+        if (method->invocation_count() < 1000) {
+            return Tier0;  // 冷方法，解释执行
+        }
+        
+        if (method->is_trivial() || 
+            method->size() < 35) {  // 小方法
+            return Tier1;  // 快速编译
+        }
+        
+        if (method->backedge_count() > 10000) {
+            // 热点循环，深度优化
+            return Tier4;  // C2编译
+        }
+        
+        return Tier3;  // 标准C1编译
+    }
+};
+```
+
+#### JIT的优化技术
+
+优化1：方法内联（Method Inlining）
+
+```java
+// 内联优化示例
+public class InliningExample {
+    // 原始代码
+    public int calculate(int a, int b) {
+        return add(a, multiply(b, 2));
+    }
+    
+    private int add(int x, int y) {
+        return x + y;
+    }
+    
+    private int multiply(int x, int y) {
+        return x * y;
+    }
+    
+    // JIT内联优化后（逻辑等效）
+    public int calculate_optimized(int a, int b) {
+        // add和multiply方法被内联
+        int temp = b * 2;  // multiply内联
+        return a + temp;   // add内联
+        // 减少2次方法调用开销
+    }
+}
+```
+优化2：逃逸分析（Escape Analysis）
+
+```java
+// 逃逸分析优化示例
+public class EscapeAnalysisExample {
+    public void process() {
+        // 对象point未逃逸出方法
+        Point point = new Point(10, 20);
+        int x = point.getX();
+        int y = point.getY();
+        System.out.println(x + y);
+        
+        // JIT优化：标量替换
+        // int x = 10;  // 直接替换为值
+        // int y = 20;
+        // 无需在堆上分配Point对象
+    }
+    
+    class Point {
+        private int x, y;
+        Point(int x, int y) { this.x = x; this.y = y; }
+        int getX() { return x; }
+        int getY() { return y; }
+    }
+}
+```
+
+优化3：锁消除（Lock Elision）
+
+```java
+// 锁消除优化示例
+public class LockEliminationExample {
+    private final Object lock = new Object();
+    
+    public String process(String input) {
+        // StringBuffer内部有同步锁
+        StringBuffer sb = new StringBuffer();
+        
+        // 分析：sb对象未逃逸出方法
+        // 且只在当前线程使用
+        synchronized(sb) {  // 这个锁可以被消除
+            sb.append("Hello ");
+            sb.append(input);
+        }
+        
+        return sb.toString();
+        
+        // JIT优化后：移除synchronized块
+        // 因为sb是线程局部的，无需同步
+    }
+}
+```
+
+优化4：循环展开（Loop Unrolling）
+
+```java
+// 循环展开优化示例
+public class LoopUnrollingExample {
+    public int sumArray(int[] array) {
+        int sum = 0;
+        for (int i = 0; i < array.length; i++) {
+            sum += array[i];  // 每次循环：检查边界、加载、加法
+        }
+        return sum;
+        
+        // JIT可能展开为（假设数组长度已知）：
+        // int sum = array[0] + array[1] + array[2] + array[3];
+        // 减少循环控制开销
+    }
+}
+```
+
+优化5：内联缓存（Inline Cache）
+
+```java
+// 内联缓存优化：虚方法调用
+public class InlineCacheExample {
+    interface Animal { void speak(); }
+    
+    class Dog implements Animal {
+        public void speak() { System.out.println("Woof"); }
+    }
+    
+    class Cat implements Animal {
+        public void speak() { System.out.println("Meow"); }
+    }
+    
+    public void makeSound(Animal animal) {
+        // 虚方法调用：运行时多态
+        animal.speak();  // 需要查虚方法表
+        
+        // JIT优化：内联缓存
+        // 如果95%的调用都是Dog类型
+        // 生成快速路径：直接调用Dog.speak()
+        // 慢速路径：查虚方法表
+    }
+}
+```
+
+#### JIT相关优化参数
+
+```shell
+# JIT编译相关参数详解
+
+# 1. 编译器选择
+-XX:+TieredCompilation          # 启用分层编译（JDK 8默认）
+-XX:-TieredCompilation          # 禁用分层编译
+-XX:TieredStopAtLevel=1         # 停止在指定编译层级
+
+# 2. 编译阈值控制
+-XX:CompileThreshold=10000      # 方法调用编译阈值（C1）
+-XX:BackEdgeThreshold=10000     # 循环回边编译阈值
+-XX:OnStackReplacePercentage=140 # OSR触发百分比
+
+# 3. 编译线程配置
+-XX:CICompilerCount=2           # C1编译器线程数（客户端）
+-XX:C2CompilerCount=2           # C2编译器线程数（服务器）
+-XX:+BackgroundCompilation      # 启用后台编译（默认）
+
+# 4. 内联优化控制
+-XX:MaxInlineSize=35            # 最大内联方法字节码大小（默认35）
+-XX:FreqInlineSize=325          # 频繁调用方法内联大小限制
+-XX:InlineSmallCode=1000        # 内联代码大小限制
+-XX:+PrintInlining              # 打印内联决策
+
+# 5. 代码缓存管理
+-XX:InitialCodeCacheSize=10M    # 初始代码缓存大小
+-XX:ReservedCodeCacheSize=240M  # 最大代码缓存大小
+-XX:+UseCodeCacheFlushing       # 启用代码缓存刷新
+-XX:CodeCacheMinimumFreeSpace=1M # 最小空闲空间
+
+# 6. 诊断和监控
+-XX:+PrintCompilation           # 打印编译日志
+-XX:+PrintAssembly              # 打印汇编代码（需要hsdis）
+-XX:+UnlockDiagnosticVMOptions  # 解锁诊断选项
+-XX:+LogCompilation             # 记录编译日志到文件
+-XX:LogFile=./jit.log           # 编译日志文件
+
+# 7. 特定优化控制
+-XX:+DoEscapeAnalysis           # 启用逃逸分析（默认）
+-XX:+EliminateLocks             # 启用锁消除（默认）
+-XX:+EliminateAllocations       # 启用标量替换（默认）
+-XX:+AggressiveOpts             # 启用激进优化
+```
+
+**优化anli**
+
+```shell
+#!/bin/bash
+# production_jit_config.sh
+
+# 生产环境JIT优化配置
+JAVA_OPTS="
+# 基础配置
+-server
+-Xms4g -Xmx4g
+
+# JIT核心配置
+-XX:+TieredCompilation
+-XX:TieredStopAtLevel=1          # 快速启动阶段只用C1
+-XX:CICompilerCount=4            # 编译线程数（根据CPU调整）
+
+# 代码缓存优化（大应用需要更大缓存）
+-XX:ReservedCodeCacheSize=512M
+-XX:InitialCodeCacheSize=64M
+-XX:+UseCodeCacheFlushing
+
+# 编译阈值调整（根据应用特点）
+-XX:CompileThreshold=15000       # 提高阈值，减少过早编译
+-XX:OnStackReplacePercentage=80  # 降低OSR阈值
+
+# 内联优化
+-XX:MaxInlineSize=50             # 增加内联大小限制
+-XX:FreqInlineSize=500           # 增加频繁方法内联限制
+-XX:InlineSmallCode=2000
+
+# 诊断配置（性能分析时启用）
+# -XX:+PrintCompilation
+# -XX:+PrintInlining
+# -XX:+UnlockDiagnosticVMOptions
+# -XX:+LogCompilation
+# -XX:LogFile=/var/log/jit.log
+
+# 激进优化（稳定后启用）
+-XX:+AggressiveOpts
+-XX:+OptimizeStringConcat
+-XX:+UseFastAccessorMethods
+-XX:+UseFastEmptyMethods
+"
+
+# 不同应用场景建议：
+echo "=== 应用场景JIT配置建议 ==="
+echo "1. Web服务（快速启动）："
+echo "   -XX:TieredStopAtLevel=1"
+echo "   -XX:CICompilerCount=2"
+echo ""
+echo "2. 批处理作业（追求峰值性能）："
+echo "   -XX:-TieredCompilation  # 禁用分层，直接C2"
+echo "   -XX:CompileThreshold=5000  # 更早编译"
+echo ""
+echo "3. 长时间运行服务："
+echo "   -XX:ReservedCodeCacheSize=1G  # 大代码缓存"
+echo "   -XX:+AggressiveOpts"
+```
+
+### JIT与AOT（提前编译）对比
+
+| 维度         | JIT（即时编译）         | AOT（提前编译）      | 适用场景                  |
+| :----------- | :---------------------- | :------------------- | :------------------------ |
+| **编译时机** | 运行时                  | 部署前               | JIT：通用，AOT：特定环境  |
+| **启动性能** | 慢（需要预热）          | 快（无需编译）       | AOT适合要求快速启动的应用 |
+| **峰值性能** | 高（基于运行时优化）    | 中等（静态优化）     | JIT适合长时间运行服务     |
+| **内存占用** | 高（代码缓存+编译线程） | 低（只需机器码）     | AOT适合内存受限环境       |
+| **优化质量** | 优（基于实际数据）      | 良（基于静态分析）   | JIT优化更精确             |
+| **跨平台**   | 是（字节码跨平台）      | 否（平台特定）       | JIT更灵活                 |
+| **调试支持** | 好（符号信息完整）      | 差（优化后丢失信息） | JIT更适合开发调试         |
+
+
+### 小结
+
+为什么需要JIT？
+1. 性能提升：将字节码编译为本地机器码，执行速度提升10-100倍 
+2. 运行时优化：基于实际运行数据，做出更精确的优化决策 
+3. 平台适应：针对具体CPU和硬件进行优化 
+4. 动态适应：适应程序不同阶段的不同行为模式 
+5. 内存效率：只编译热点代码，节省内存和编译时间
+
+JIT的关键技术：
+1. 分层编译：渐进式优化，平衡启动时间和峰值性能 
+2. 热点探测：智能识别需要编译的代码 
+3. 高级优化：内联、逃逸分析、锁消除等 
+4. 自适应调整：根据运行时情况动态调整策略
 
 ## 简述分代垃圾回收器工作流程
 
@@ -254,12 +802,12 @@ permalink: /compre-guide/interview/jvm/jvm提高/
 1. 如果来了一个新对象，先看看 Eden 是否放的下？
     1. 如果Eden 放得下，则直接放到 Eden 区
     2. 如果 Eden 放不下，则触发YGC ，执行垃圾回收，看看还能不能放下？
-2. 将对象放到老年区又有两种情况：
-3. 如果 Eden 执行了 YGC 还是无法放不下该对象，那没得办法，只能说明是超大对象，只能直接放到老年代
-4. 那万一老年代都放不下，则先触发FullGC ，再看看能不能放下，放得下最好，但如果还是放不下，那只能报OOM
-5. 如果 Eden 区满了，将对象往幸存区拷贝时，发现幸存区放不下啦，那只能便宜了某些新对象，让他们直接晋升至老年区
+2. 将对象放到老年区又有两种情况： 
+   1. 如果 Eden 执行了 YGC 还是无法放不下该对象，那没得办法，只能说明是超大对象，只能直接放到老年代 
+   2. 那万一老年代都放不下，则先触发FullGC ，再看看能不能放下，放得下最好，但如果还是放不下，那只能报OOM 
+   3. 如果 Eden 区满了，将对象往幸存区拷贝时，发现幸存区放不下啦，那只能便宜了某些新对象，让他们直接晋升至老年区
 
-**图示过程：**
+**对象内存分配过程:**
 
 ![1630901747597](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/121547-801883.png)
 
@@ -716,26 +1264,322 @@ Java垃圾收集器的配置对于JVM优化来说是一个很重要的选择，�
 
 1. 对于垃圾收集，面试官可以循序渐进从理论、实践各种角度深入，也未必是要求面试者什么都懂。但如果你懂得原理，一定会成为面试中的加分项。
 2. 这里较通用、基础性的部分如下：
-3. - 垃圾收集的算法有哪些？如何判断一个对象是否可以回收？
-
-- 垃圾收集器工作的基本流程。
-
-4. 另外，大家需要多关注垃圾回收器这一章的各种常用的参数
+   - 垃圾收集的算法有哪些？如何判断一个对象是否可以回收？ 
+   - 垃圾收集器工作的基本流程。
+3. 另外，大家需要多关注垃圾回收器这一章的各种常用的参数
 
 ## 你使用过 G1 垃圾回收器的哪几个重要参数？
 
-![1644322810116](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/202118-539365.png)
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/202118-539365.png)
 
 - 最重要的是 MaxGCPauseMillis，可以通过它设定 G1 的目标停顿时间，它会尽量去达成这个目标。
 
 - G1HeapRegionSize 可以设置小堆区的大小，一般是 2 的次幂。
 - InitiatingHeapOccupancyPercent 启动并发 GC 时的堆内存占用百分比，G1 用它来触发并发 GC 周期，基于整个堆的使用率，而不只是某一代内存的使用比例，默认是 45%。
 
+InitiatingHeapOccupancyPercent参数补充:
+
+1、什么是 IHOP？
+
+InitiatingHeapOccupancyPercent（IHOP） 是G1垃圾收集器中控制并发标记周期启动时机的关键参数。
+
+```java
+IHOP定义：
+当老年代（Old Generation）使用率达到整个堆的特定百分比时，触发并发标记周期（Concurrent Marking Cycle）。
+
+默认值：45%（JDK 8u40之后）
+含义：当老年代占堆内存的45%时，启动并发标记
+```
+2、IHOP触发的时间线
+
+```shell
+G1垃圾收集周期时间线示例：
+┌─────────────────────────────────────────────────────────────┐
+│ 时间         │ 事件                          │ 老年代使用率  │
+├─────────────────────────────────────────────────────────────┤
+│ T0           │ 应用启动                      │ 5%           │
+│ T1-T10       │ 多次Young GC，对象晋升        │ 逐步增长      │
+│ T11          │ 老年代达到45%（IHOP阈值）      │ 45%          │
+│ T12          │ 开始并发标记周期              │ 标记中...    │
+│ T13-T20      │ 并发标记进行中                │ 可能增长      │
+│ T21          │ 并发标记完成                  │ 统计完成      │
+│ T22          │ 开始Mixed GC                  │ 回收老年代    │
+│ T23-T30      │ 多次Mixed GC                  │ 逐步下降      │
+│ T31          │ 老年代再次达到IHOP阈值         │ 45%          │
+│ T32          │ 新一轮并发标记                │ 循环...      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+3、如何设置IHOP值
+
+```mermaid
+graph TD
+    A[IHOP调优决策] --> B{应用特点?}
+    
+    B --> C[内存敏感型]
+    B --> D[延迟敏感型]
+    B --> E[吞吐量优先型]
+    
+    C --> F[堆内存紧张]
+    F --> G[降低IHOP<br/>-XX:InitiatingHeapOccupancyPercent=35]
+    
+    D --> H[要求低延迟]
+    H --> I[降低IHOP<br/>-XX:InitiatingHeapOccupancyPercent=40]
+    
+    E --> J[允许较长GC停顿]
+    J --> K[提高IHOP<br/>-XX:InitiatingHeapOccupancyPercent=50]
+    
+    G --> L[监控效果]
+    I --> L
+    K --> L
+    
+    L --> M{是否启用自适应?}
+    M -->|JDK 8u40+| N[启用自适应IHOP<br/>-XX:+UseAdaptiveIHOP]
+    M -->|JDK 8u40前| O[手动调整IHOP]
+    
+    N --> P[观察自适应效果]
+    O --> Q[基于监控数据调整]
+```
+
+4、不同场景优化配置
+
+```shell
+#!/bin/bash
+# ihop_tuning_examples.sh
+
+# 场景1：内存敏感型应用（堆内存较小或使用率高）
+echo "1. 内存敏感型应用（4-8GB堆）："
+MEM_SENSITIVE_CONFIG="
+-XX:InitiatingHeapOccupancyPercent=35  # 较低阈值，提前开始标记
+-XX:G1ReservePercent=20                # 增加预留空间
+-XX:+UseAdaptiveIHOP                   # 启用自适应（JDK 9+）
+-XX:G1HeapWastePercent=5               # 标准浪费阈值
+"
+
+# 场景2：延迟敏感型应用（需要可预测停顿）
+echo -e "\n2. 延迟敏感型应用（金融交易）："
+LATENCY_SENSITIVE_CONFIG="
+-XX:InitiatingHeapOccupancyPercent=40  # 中等阈值
+-XX:MaxGCPauseMillis=50                # 严格停顿目标
+-XX:G1MixedGCCountTarget=16            # 更多次混合回收
+-XX:G1OldCSetRegionThresholdPercent=10 # 每次回收较少老年代
+"
+
+# 场景3：吞吐量优先型应用（批处理/计算）
+echo -e "\n3. 吞吐量优先型应用（大数据处理）："
+THROUGHPUT_CONFIG="
+-XX:InitiatingHeapOccupancyPercent=50  # 较高阈值，减少GC频率
+-XX:MaxGCPauseMillis=200               # 允许较长停顿
+-XX:G1HeapRegionSize=16m               # 较大Region减少开销
+-XX:-UseAdaptiveIHOP                   # 固定阈值，避免波动
+"
+
+# 场景4：超大堆应用（>32GB）
+echo -e "\n4. 超大堆应用（32GB+）："
+LARGE_HEAP_CONFIG="
+-XX:InitiatingHeapOccupancyPercent=30  # 较低阈值，提前开始标记
+-XX:G1HeapRegionSize=32m               # 大Region减少元数据
+-XX:G1ReservePercent=25                # 更多预留空间
+-XX:G1ConcRefinementThreads=8          # 更多并发线程
+"
+```
+
+5、自适应IHOP值
+
+```java
+public class AdaptiveIHOPAnalysis {
+    
+    // 自适应IHOP的优势
+    public void advantages() {
+        // 1. 自动适应应用行为变化
+        //    - 分配速率变化
+        //    - 对象生命周期变化
+        //    - 流量模式变化
+        
+        // 2. 减少手动调优需求
+        //    - 无需预测最佳IHOP值
+        //    - 自动应对不同时段
+        
+        // 3. 避免常见问题
+        //    - 过早触发：浪费CPU资源
+        //    - 过晚触发：导致Full GC
+        
+        // 4. 基于实际数据
+        //    - 使用真实分配速率
+        //    - 考虑实际标记时间
+    }
+    
+    // 自适应IHOP的限制
+    public void limitations() {
+        // 1. 需要学习期
+        //    - 初始阶段可能不准
+        //    - 需要几个GC周期学习
+        
+        // 2. 对突发变化反应可能延迟
+        //    - 流量突然激增
+        //    - 分配模式突变
+        
+        // 3. 可能过度调整
+        //    - 在某些场景下振荡
+        //    - 需要稳定期
+        
+        // 4. 不适用于所有场景
+        //    - 极端稳定的应用：固定IHOP可能更好
+        //    - 有严格SLA要求的：需要手动控制
+    }
+    
+    // 启用建议
+    public void recommendation() {
+        String advice = """
+            启用自适应IHOP的建议：
+            
+            应该启用（√）：
+            - 应用负载变化较大
+            - 分配模式不固定
+            - 没有严格的IHOP要求
+            - JDK 9+环境
+            
+            考虑禁用（×）：
+            - 应用行为极其稳定
+            - 有严格的延迟SLA
+            - 需要完全可预测的GC行为
+            - 调试/性能分析阶段
+            """;
+        System.out.println(advice);
+    }
+}
+```
+
+6、IHOP与相关参数的关系矩阵
+
+| 参数                     | 与IHOP的关系                       | 协同调优建议                         |
+| :----------------------- | :--------------------------------- | :----------------------------------- |
+| **G1ReservePercent**     | IHOP触发后，预留空间防止晋升失败   | IHOP↓时，G1ReservePercent↑           |
+| **MaxGCPauseMillis**     | 影响混合回收策略，间接影响标记时机 | 低延迟要求→IHOP↓                     |
+| **G1HeapWastePercent**   | 决定何时停止混合回收               | IHOP↓时，可适当↑HeapWastePercent     |
+| **ConcGCThreads**        | 并发标记速度                       | IHOP↓时，可↑ConcGCThreads加快标记    |
+| **G1MixedGCCountTarget** | 混合回收次数                       | IHOP↓时，可能需要↑MixedGCCountTarget |
+
+**调优准则**
+
+```shell
+IHOP调优最佳实践:
+
+1. 基准测试:
+   - 先使用默认值(45%)运行
+   - 收集至少24小时性能数据
+   - 分析GC日志和监控指标
+
+2. 调整决策:
+   - 频繁Full GC → 降低IHOP(35-40%)
+   - GC过于频繁 → 提高IHOP(50-55%)
+   - 负载变化大 → 启用自适应IHOP
+   - 稳定负载 → 可固定IHOP
+
+3. 监控关键指标:
+   - ✅ 老年代增长速率
+   - ✅ 并发标记完成时间
+   - ✅ 混合回收效果
+   - ✅ Full GC发生频率
+
+4. 渐进调整:
+   - 每次调整5%的幅度
+   - 观察至少一个完整业务周期
+   - 记录调整前后的性能对比
+
+5. 考虑业务模式:
+   - 工作日/周末差异
+   - 促销/非促销期
+   - 峰值/低谷时段
+```
+
+7、 各JDK版本的IHOP策略
+
+| JDK版本            | IHOP策略       | 推荐配置                         |
+| :----------------- | :------------- | :------------------------------- |
+| **JDK 8u40之前**   | 固定IHOP       | 根据应用特点手动设置             |
+| **JDK 8u40-8u202** | 可选自适应     | 建议启用：`-XX:+UseAdaptiveIHOP` |
+| **JDK 9-10**       | 默认启用自适应 | 一般无需调整                     |
+| **JDK 11+**        | 自适应优化改进 | 保持默认，特殊需求时调整         |
+| **JDK 17+**        | 自适应更智能   | 信任JVM自动优化                  |
+
+
+**小结**
+
+1. GC频率：IHOP越低，GC越频繁（但更安全） 
+2. 停顿时间：合理IHOP可避免Full GC导致的长时间停顿 
+3. 吞吐量：过高IHOP可能提升吞吐，但增加风险 
+4. 内存安全：过低IHOP更安全，但可能过度GC
+
+核心建议：
+
+1. 对于大多数应用，从默认45%开始 
+2. JDK 8u40+建议启用自适应IHOP 
+3. 根据实际监控数据渐进调整 
+4. 考虑业务负载模式和变化
+
 ## **有什么堆外内存的排查思路？**
 
-进程占用的内存，可以使用 top 命令，看 RES 段占用的值，如果这个值大大超出我们设定的最大堆内存，则证明堆外内存占用了很大的区域。
+### Java内存组成架构
+
+```shell
+Java进程内存全景：
+┌─────────────────────────────────────────────────────┐
+│ Java进程总内存                                       │
+├─────────────────────────────────────────────────────┤
+│ 1. 堆内内存（Heap）                                  │
+│    • Young Generation（Eden+Survivor）               │
+│    • Old Generation                                   │
+│    • （G1中的Humongous Region）                       │
+│                                                      │
+│ 2. 堆外内存（Off-Heap）                              │
+│    • 直接内存（Direct Memory）                        │
+│    • 元空间（Metaspace）                             │
+│    • 线程栈（Thread Stack）                           │
+│    • 代码缓存（Code Cache）                          │
+│    • GC数据结构                                      │
+│    • 本地库（JNI）                                    │
+│    • 符号表等JVM内部使用                              │
+└─────────────────────────────────────────────────────┘
+```
+
+### 常见堆外内存占用场景
+
+1. 直接内存（最常见）
+   - Netty的PooledByteBufAllocator
+   - Unsafe.allocateMemory()
+   - MappedByteBuffer（内存映射文件）
+
+2. 元空间（类加载相关）
+   - 每个加载的类、方法、常量池等
+   - 动态生成类（CGLIB、动态代理）
+   - 大量使用反射
+
+3. JNI本地库
+   - 通过JNI调用的本地库分配内存
+   - 图像处理、加密库等
+
+4. 线程相关 本地方法栈
+   - 每个线程的栈空间（-Xss参数控制）
+   - 线程本地分配缓冲区（TLAB）
+5. JVM内部
+   - GC数据结构（如G1的RSet、卡表）
+   - 符号表、字符串表
+   - 代码缓存（JIT编译的代码）
+
+查看java进程占用物理内存方法:
+
+1. 进程占用的内存，可以使用 top 命令，看 RES 段占用的值，如果这个值大大超出我们设定的最大堆内存，则证明堆外内存占用了很大的区域。
+2. 使用ps命令（最常用) `ps -p $PID -o pid,ppid,user,%cpu,%mem,rss,vsz,etime,cmd`
+3. 分析进程文件系统内存占用情况:`/proc/$PID/status`
+
+分析步骤:
+1. 先看物理文件内存占用情况，是不是缓存文件过大
+2. 如果是缓存文件过大，那就排查应用程序，什么导致的缓存文件主键过大；
+3. 否则就查看进程堆内存占用请情况，是不是加载类过多等导致；通过`jstat -gcmetacapacity`查看原空间等不同内存区域占用情况；
 
 使用 gdb 命令可以将物理内存 dump 下来，通常能看到里面的内容。更加复杂的分析可以使用 Perf 工具，或者谷歌开源的 GPerftools。那些申请内存最多的 native 函数，就很容易找到。
+
 
 ## safepoint 是什么？
 
@@ -792,20 +1636,6 @@ CMS是一款基于“标记-清除”[算法]()实现的回收器，这意味着
 >
 > 还有另外一个参数 -XX**:**CMSFullGCsBeforeCompaction，这个参数的作用是要求CMS在执行过若干次不整理空间的 Full GC 之后，下一次进入 Full GC 前会先进行碎片整理（默认值为0，表示每次进入 Full GC 时都进行碎片整理）。
 
-## 详细说一下G1的回收过程？
-
-G1（Garbage First）回收器采用面向局部收集的设计思路和基于Region的内存布局形式，是一款主要面向服务端应用的垃圾回收器。G1设计初衷就是替换 CMS，成为一种全功能收集器。G1 在JDK9 之后成为服务端模式下的默认垃圾回收器，取代了 Parallel Scavenge 加 Parallel Old 的默认组合，而 CMS 被声明为不推荐使用的垃圾回收器。G1从整体来看是基于 标记-整理 [算法]()实现的回收器，但从局部（两个Region之间）上看又是基于 标记-复制 [算法]()实现的。
-
-**G1 回收过程**，G1 回收器的运作过程大致可分为四个步骤：
-
-1.  初始标记（会STW）：仅仅只是标记一下 GC Roots 能直接关联到的对象，并且修改TAMS指针的值，让下一阶段用户线程并发运行时，能正确地在可用的Region中分配新对象。这个阶段需要停顿线程，但耗时很短，而且是借用进行Minor GC的时候同步完成的，所以G1收集器在这个阶段实际并没有额外的停顿。
-
-1.  并发标记：从 GC Roots 开始对堆中对象进行可达性分析，递归扫描整个堆里的对象图，找出要回收的对象，这阶段耗时较长，但可与用户程序并发执行。当对象图扫描完成以后，还要重新处理在并发时有引用变动的对象。
-
-1.  最终标记（会STW）：对用户线程做短暂的暂停，处理并发阶段结束后仍有引用变动的对象。
-
-1.  清理阶段（会STW）：更新Region的统计数据，对各个Region的回收价值和成本进行[排序]()，根据用户所期望的停顿时间来制定回收计划，可以自由选择任意多个Region构成回收集，然后把决定回收的那一部分Region的存活对象复制到空的Region中，再清理掉整个旧Region的全部空间。这里的操作涉及存活对象的移动，必须暂停用户线程，由多条回收器线程并行完成的。
-
 ## JVM中一次完整的GC是什么样子的？
 
 先描述一下Java堆内存划分。
@@ -816,14 +1646,14 @@ G1（Garbage First）回收器采用面向局部收集的设计思路和基于Re
 
 老年代的垃圾回收（又称Major GC）通常使用“标记-清理”或“标记-整理”[算法]()。
 
-![1644327672040](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/214113-550856.png)
+首先看一下jvm内存的整体布局:
+
+![](./image/jvm内存布局.png)
 
 再描述它们之间转化流程。
 
 -  对象优先在Eden分配。当 eden 区没有足够空间进行分配时，虚拟机将发起一次 Minor GC。
-
     -  在 Eden 区执行了第一次 GC 之后，存活的对象会被移动到其中一个 Sur[vivo]()r 分区；
-
     -  Eden 区再次 GC，这时会采用复制[算法]()，将 Eden 和 from 区一起清理，存活的对象会被复制到 to 区；
     -  移动一次，对象年龄加 1，对象年龄大于一定阀值会直接移动到老年代。GC年龄的阀值可以通过参数 -XX:MaxTenuringThreshold 设置，默认为 15；
     -  动态对象年龄判定：Sur[vivo]()r 区相同年龄所有对象大小的总和 > (Sur[vivo]()r 区内存大小 * 这个目标使用率)时，大于或等于该年龄的对象直接进入老年代。其中这个使用率通过 -XX:TargetSur[vivo]()rRatio 指定，默认为 50%；
@@ -837,11 +1667,11 @@ G1（Garbage First）回收器采用面向局部收集的设计思路和基于Re
 
 新生代分为 3 个分区：Eden（伊甸园）、Survivor0、Survivor1；其中Survivor0、 Survivor1 合起来成为Survivor（幸存区）; 如果没有Survivor，Eden区每进行一次`Minor GC`，存活的对象都会被送到老年代。老年代将很快被填满，老年代每发生一次`Full GC` 的速度比 `Minor GC`慢10倍；所以产生了Survivor区，每产生一次minor GC操作，都会把当前存活下来的对象放入Survivor区域中，等到对象存活到一定的年龄，然后在放到老年代，等老年代块满的时候，在进行一次major gc释放内存空间。对象年龄默认是16岁。
 
-> Survivor 的作用就是减少老年代`Full GC` 的次数,相当于缓冲带；
+> 1. Survivor 的作用就是减少老年代`Full GC` 的次数,相当于缓冲带；
 >
-> Eden和Survivor的比例分配8:1:1
+> 2. Eden和Survivor的比例分配8:1:1
 >
-> 默认情况下新生代和老年代的比例是1:2的比例。
+> 3. 默认情况下新生代和老年代的比例是1:2的比例。
 
 ## Minor GC 和 Full GC 有什么不同呢？
 
@@ -849,9 +1679,9 @@ Minor GC：只收集新生代的GC。
 
 Full GC: 收集整个堆，包括 新生代，老年代，永久代(在 JDK 1.8及以后，永久代被移除，换为metaspace 元空间)等所有部分的模式。
 
-**Minor GC触发条件：**当Eden区满时，触发Minor GC。
+Minor GC触发条件：当Eden区满时，触发Minor GC。
 
-**Full GC触发条件**：
+Full GC触发条件：
 
 -  通过Minor GC后进入老年代的平均大小大于老年代的可用内存。如果发现统计数据说之前Minor GC的平均晋升大小比目前old gen剩余的空间大，则不会触发Minor GC而是转为触发full GC。
 -  老年代空间不够分配新的内存（或永久代空间不足，但只是JDK1.7有的，这也是用元空间来取代永久代的原因，可以减少Full GC的频率，减少GC负担，提升其效率）。
@@ -874,7 +1704,7 @@ Full GC: 收集整个堆，包括 新生代，老年代，永久代(在 JDK 1.8�
 
 通过下图来了解空间分配担保原则：
 
-![1644327753395](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/214234-378531.png)
+![](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/214234-378531.png)
 
 ## 简述GC中Stop the world（重点）
 
@@ -894,33 +1724,73 @@ STW 是JVM 在后台自动发起和自动完成的。在用户不可见的情况
 
 ## **什么是内存溢出，什么是内存泄漏，有什么区别**
 
+### 内存溢出（OutOfMemoryError, OOM）
+
 内存溢出说的是用户申请的空间已经超过系统可用的内存空间，最常见的是栈内存溢出，堆内存溢出。
+
+1. 堆内存溢出（最常见）`java.lang.OutOfMemoryError: Java heap space`;
+2. 元空间溢出（类加载过多）大量动态生成类，如CGLIB代理;`java.lang.OutOfMemoryError: Metaspace`;
+3. 直接内存溢出（NIO使用不当）`java.lang.OutOfMemoryError: Direct buffer memory`
+4. 栈内存溢出（递归过深）`java.lang.StackOverflowError`,无限递归;
+
+### 内存泄漏（Memory Leak）
 
 内存泄漏，强引用所指向的对象不会被回收，可能导致内存泄漏，虚拟机宁愿抛出OOM也不会去回收他指向的对象，但是如果内存泄漏的次数发生多了就会导致内存溢出。
 
-## 常用 GC 调优策略有哪些？
+虽然对象不再使用，但无法被GC回收,最终可能导致OOM，但不是立即发生;
 
-1. GC 调优原则；
-2. GC 调优目的；
-3. GC 调优策略；
+常见的内存泄露的例子:
+
+1. 模式1：静态集合类泄漏（最常见）,解决方案：使用WeakHashMap或定期清理;
+2. 模式2：监听器未取消注册,解决方案：提供removeListener方法;
+3. 模式3：内部类持有外部类引用,匿名内部类隐式持有外部类引用;解决方案：使用静态内部类.
+4. 模式4：ThreadLocal使用不当,在使用线程池时，ThreadLocal的值不会自动清理,使用后调用remove();
+5. 模式5：数据库连接未关闭,正确做法：在finally块中关闭;
+6. 模式6：缓存无限增长,使用有界缓存（如Guava Cache, Caffeine）,或实现LRU淘汰策略;
+7. 模式7：字符串拼接在常量池,大量调用String.intern(),intern()会将字符串放入常量池，永久存在;
+8. 模式8：JNI本地内存泄漏,通过JNI调用本地代码，本地代码分配内存未释放,解决方案：确保本地代码正确释放内存,使用finalizer或Cleaner机制
+
+
+**内存溢出和内存泄露区别:**
+
+| 维度         | 内存溢出（OOM）      | 内存泄漏（Memory Leak）  |
+| :----------- | :------------------- | :----------------------- |
+| **根本原因** | 申请内存 > 可用内存  | 已分配内存未释放         |
+| **发生速度** | 可能立即发生         | 缓慢积累，逐渐恶化       |
+| **可预测性** | 相对容易预测         | 难以预测，隐蔽性强       |
+| **检测难度** | 较容易（有明确异常） | 困难（无直接异常）       |
+| **影响范围** | 整个应用崩溃         | 应用性能逐渐下降         |
+| **解决难度** | 相对容易             | 非常困难                 |
+| **典型场景** | 一次性加载超大文件   | 缓存无限增长、未关闭连接 |
+| **JVM表现**  | 抛出OutOfMemoryError | GC频繁，老年代持续增长   |
+
+**如何预防内存溢出和泄露**
+
+
+| 方面     | 内存溢出（OOM）   | 内存泄漏（Memory Leak） |
+| :------- | :---------------- | :---------------------- |
+| **本质** | 空间不足          | 资源未释放              |
+| **症状** | 应用突然崩溃      | 应用逐渐变慢            |
+| **异常** | OutOfMemoryError  | 无直接异常              |
+| **检测** | 相对容易          | 非常困难                |
+| **重现** | 容易重现          | 难以重现                |
+| **影响** | 立即崩溃          | 性能逐渐下降            |
+| **解决** | 增加资源/优化代码 | 找到并修复泄漏点        |
+| **预防** | 合理配置资源      | 良好编程习惯            |
+
+## 常用 GC 调优策略有哪些？
 
 ### GC 调优原则
 
 在调优之前，我们需要记住下面的原则：
 
-> 多数的 Java 应用不需要在服务器上进行 GC 优化；
->
-> 多数导致 GC 问题的 Java  应用，都不是因为我们参数设置错误，而是代码问题；
->
-> 在应用上线之前，先考虑将机器的 JVM 参数设置到最优（最适合）；
->
-> 减少创建对象的数量；
->
-> 减少使用全局变量和大对象；
->
-> GC 优化是到最后不得已才采用的手段；
->
-> 在实际使用中，分析 GC 情况优化代码比优化 GC 参数要多得多。
+1. 多数的 Java 应用不需要在服务器上进行 GC 优化； 
+2. 多数导致GC问题的Java应用，都不是因为我们参数设置错误，而是代码问题； 
+3. 在应用上线之前，先考虑将机器的 JVM 参数设置到最优（最适合）； 
+4. 减少创建对象的数量，使用不可变对象; 
+5. 减少使用全局变量和大对象，大数组，大字符串; 
+6. GC 优化是到最后不得已才采用的手段； 
+7. 在实际使用中，分析 GC 情况优化代码比优化 GC 参数要多得多。
 
 ### GC 调优目的
 
@@ -928,15 +1798,11 @@ STW 是JVM 在后台自动发起和自动完成的。在用户不可见的情况
 
 ### GC 调优策略
 
-**策略 1：**将新对象预留在新生代，由于 Full GC 的成本远高于 Minor GC，因此尽可能将对象分配在新生代是明智的做法，实际项目中根据 GC 日志分析新生代空间大小分配是否合理，适当通过“-Xmn”命令调节新生代大小，最大限度降低新对象直接进入老年代的情况。
-
-**策略 2：**大对象进入老年代，虽然大部分情况下，将对象分配在新生代是合理的。但是对于大对象这种做法却值得商榷，大对象如果首次在新生代分配可能会出现空间不足导致很多年龄不够的小对象被分配的老年代，破坏新生代的对象结构，可能会出现频繁的  full gc。因此，对于大对象，可以设置直接进入老年代（当然短命的大对象对于垃圾回收来说简直就是噩梦）。`-XX:PretenureSizeThreshold` 可以设置直接进入老年代的对象大小。
-
-**策略 3：**合理设置进入老年代对象的年龄，`-XX:MaxTenuringThreshold` 设置对象进入老年代的年龄大小，减少老年代的内存占用，降低 full gc 发生的频率。
-
-**策略 4：**设置稳定的堆大小，堆大小设置有两个参数：`-Xms` 初始化堆大小，`-Xmx` 最大堆大小。
-
-**策略5：**注意： 如果满足下面的指标，**则一般不需要进行 GC 优化：**
+1. 策略 1：将新对象预留在新生代，由于 Full GC 的成本远高于 Minor GC，因此尽可能将对象分配在新生代是明智的做法，实际项目中根据 GC 日志分析新生代空间大小分配是否合理，适当通过“-Xmn”命令调节新生代大小，最大限度降低新对象直接进入老年代的情况。 
+2. 策略 2：大对象进入老年代，虽然大部分情况下，将对象分配在新生代是合理的。但是对于大对象这种做法却值得商榷，大对象如果首次在新生代分配可能会出现空间不足导致很多年龄不够的小对象被分配的老年代，破坏新生代的对象结构，可能会出现频繁的  full gc。因此，对于大对象，可以设置直接进入老年代（当然短命的大对象对于垃圾回收来说简直就是噩梦）。`-XX:PretenureSizeThreshold` 可以设置直接进入老年代的对象大小。 
+3. 策略 3：合理设置进入老年代对象的年龄，`-XX:MaxTenuringThreshold` 设置对象进入老年代的年龄大小，减少老年代的内存占用，降低 full gc 发生的频率。 
+4. 策略 4：设置稳定的堆大小，堆大小设置有两个参数：`-Xms` 初始化堆大小，`-Xmx` 最大堆大小。 
+5. 策略5：注意： 如果满足下面的指标，则一般不需要进行 GC 优化：
 
 > MinorGC 执行时间不到50ms； Minor GC 执行不频繁，约10秒一次； Full GC 执行时间不到1s； Full GC 执行频率不算频繁，不低于10分钟1次。
 
@@ -948,9 +1814,12 @@ STW 是JVM 在后台自动发起和自动完成的。在用户不可见的情况
 - 引用计数算法的实现简单，判断效率也很高，在大部分情况下它都是一个不错的算法。但是Java语言中没有选用引用计数算法来管理内存，其中最主要的一个原因是它很难解决对象之间相互**循环引用**的问题。
 
 **可达性分析（引用链）**
+
 在主流的商用程序语言中(Java和C#)，都是使用可达性分析算法判断对象是否存活的。这个算法的基本思路就是通过一系列名为"GC Roots"的对象作为起始点，从这些节点开始向下搜索，搜索所走过的路径称为引用链(Reference Chain)，当一个对象到GC Roots没有任何引用链相连时，则证明此对象是不可用的，下图对象object5, object6, object7虽然有互相判断，但它们到GC Roots是不可达的，所以它们将会判定为是可回收对象。
 
-![1631498814941](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/13/100656-310658.png)
+**可达性分析算法示意图:**
+
+![](./image/可达性分析算法.png)
 
 在Java语言里，可作为GC Roots对象的包括如下几种：
 
