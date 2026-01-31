@@ -1,7 +1,7 @@
 ---
-title: 4、Java动态分派和静态分派
+title: 5、Java动态分派和静态分派
 icon: catppuccin:java-exception
-order: 4
+order: 5
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
 copyright: bugcode
