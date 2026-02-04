@@ -1,121 +1,15 @@
 ---
-title: Java集合手册(基础)
+title: 4、Java集合基础一
 icon: material-icon-theme:gemini-ai
-order: 1
+order: 4
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
-category:
-  - 面试
-  - JAVA
-tag:
-  - 面试
-  - java
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 11:14:44
 permalink: /compre-guide/interview/java/java集合基础/
 ---
 
-<!-- TOC -->
-
-- [14. Java集合手册(基础)](#14-java集合手册基础)
-  - [14.1. 什么是Java的集合？使用集合有什么好处？](#141-什么是java的集合使用集合有什么好处)
-    - [14.1.1. Java集合综述](#1411-java集合综述)
-  - [14.2. 常用的集合类以及它们的特点？](#142-常用的集合类以及它们的特点)
-    - [14.2.1. Java集合框架中的快速失败（fail—fast）机制](#1421-java集合框架中的快速失败failfast机制)
-      - [14.2.1.1. 那么在实际测试代码当中是如何表现的呢？](#14211-那么在实际测试代码当中是如何表现的呢)
-      - [14.2.1.2. 实现原理](#14212-实现原理)
-    - [14.2.2. 安全失败](#1422-安全失败)
-      - [14.2.2.1. **原理**](#14221-原理)
-      - [14.2.2.2. **优缺点**](#14222-优缺点)
-    - [14.2.3. fail-fast和fail-safe区别？](#1423-fail-fast和fail-safe区别)
-  - [14.3. List](#143-list)
-    - [14.3.1. ArrayList、LinkedList、Vector 各自的特点以及优缺点？](#1431-arraylistlinkedlistvector-各自的特点以及优缺点)
-    - [14.3.2. ArrayList 了解吗？](#1432-arraylist-了解吗)
-    - [14.3.3. ArrayList 的扩容机制？](#1433-arraylist-的扩容机制)
-    - [14.3.4. ArrayList为什么线程不安全还使用他呢？](#1434-arraylist为什么线程不安全还使用他呢)
-    - [14.3.5. ArrayList的底层实现是数组，添加数据的话，会有问题吗？](#1435-arraylist的底层实现是数组添加数据的话会有问题吗)
-    - [14.3.6. ArrayList在增删的时候是怎么做的么？主要说一下他为啥慢。](#1436-arraylist在增删的时候是怎么做的么主要说一下他为啥慢)
-    - [14.3.7. ArrayList插入删除一定慢么？](#1437-arraylist插入删除一定慢么)
-    - [14.3.8. 怎么在遍历 ArrayList 时移除一个元素？](#1438-怎么在遍历-arraylist-时移除一个元素)
-    - [14.3.9. ArrayList 和 Vector 的区别/异同？](#1439-arraylist-和-vector-的区别异同)
-    - [14.3.10. ArrayList 和 LinkedList 的区别/异同？](#14310-arraylist-和-linkedlist-的区别异同)
-    - [14.3.11. ArryList 是线程不安全的？为什么？](#14311-arrylist-是线程不安全的为什么)
-    - [14.3.12. 如何解决 ArrayList 线程不安全的问题？](#14312-如何解决-arraylist-线程不安全的问题)
-      - [14.3.12.1. **解决集合类不安全的方法 1 —— Vector**](#143121-解决集合类不安全的方法-1--vector)
-      - [14.3.12.2. **解决集合类不安全的方法 2 —— Collections**](#143122-解决集合类不安全的方法-2--collections)
-      - [14.3.12.3. **解决集合类不安全的方法 3 —— CopyOnWriteArrayList（写时复制）**](#143123-解决集合类不安全的方法-3--copyonwritearraylist写时复制)
-  - [14.4. CopyOnWriteArrayList](#144-copyonwritearraylist)
-    - [14.4.1. 读写分离](#1441-读写分离)
-    - [14.4.2. 优缺点](#1442-优缺点)
-  - [14.5. Map](#145-map)
-    - [14.5.1. HashMap的底层实现原理？](#1451-hashmap的底层实现原理)
-    - [14.5.2. 使用的hash算法？](#1452-使用的hash算法)
-    - [14.5.3. HashMap的扩容方式？负载因子是多少？为什是这么多？](#1453-hashmap的扩容方式负载因子是多少为什是这么多)
-    - [14.5.4. HashMap 容量的长度为什么总是2的幂次方？](#1454-hashmap-容量的长度为什么总是2的幂次方)
-    - [14.5.5. 扩容过程？](#1455-扩容过程)
-    - [14.5.6. 知道HashMap 扩容时候的死循环问题吗？](#1456-知道hashmap-扩容时候的死循环问题吗)
-    - [14.5.7. jdk1.7版hashmap在多线程环境下的死循环问题介绍一下？](#1457-jdk17版hashmap在多线程环境下的死循环问题介绍一下)
-    - [14.5.8. 如何解决 HashMap 线程不安全的问题？](#1458-如何解决-hashmap-线程不安全的问题)
-    - [14.5.9. put方法流程？](#1459-put方法流程)
-    - [14.5.10. 红黑树的特点？](#14510-红黑树的特点)
-    - [14.5.11. 为什么使用红黑树而不使用AVL树？](#14511-为什么使用红黑树而不使用avl树)
-    - [14.5.12. hashmap线程不安全的表现有哪些？](#14512-hashmap线程不安全的表现有哪些)
-    - [14.5.13. 在解决 hash 冲突的时候，为什么选择先用链表，再转红黑树?](#14513-在解决-hash-冲突的时候为什么选择先用链表再转红黑树)
-    - [14.5.14. HashMap默认加载因子是多少？为什么是 0.75？](#14514-hashmap默认加载因子是多少为什么是-075)
-    - [14.5.15. 一般用什么作为HashMap的key?](#14515-一般用什么作为hashmap的key)
-    - [14.5.16. HashMap为什么线程不安全？](#14516-hashmap为什么线程不安全)
-    - [14.5.17. HashMap和HashTable的区别？](#14517-hashmap和hashtable的区别)
-    - [14.5.18. LinkedHashMap底层原理？](#14518-linkedhashmap底层原理)
-    - [14.5.19. ConcurrentHashMap能完全替代Hashtable吗？](#14519-concurrenthashmap能完全替代hashtable吗)
-  - [14.6. Hashtable的特点介绍一下？](#146-hashtable的特点介绍一下)
-  - [14.7. 讲一下TreeMap？](#147-讲一下treemap)
-    - [14.7.1. HashMap 是 TreeMap 如何选用？](#1471-hashmap-是-treemap-如何选用)
-    - [14.7.2. 解决hash冲突的办法有哪些？HashMap用的哪种？](#1472-解决hash冲突的办法有哪些hashmap用的哪种)
-  - [14.8. Set](#148-set)
-  - [14.9. HashSet底层原理？](#149-hashset底层原理)
-    - [14.9.1. HashSet、LinkedHashSet 和 TreeSet 的区别？](#1491-hashsetlinkedhashset-和-treeset-的区别)
-    - [14.9.2. HashSet 和 HashMap 的区别？](#1492-hashset-和-hashmap-的区别)
-  - [14.10. HashMap(jdk1.8)](#1410-hashmapjdk18)
-    - [14.10.1. Hashmap特点](#14101-hashmap特点)
-    - [14.10.2. **解决hash冲突的办法有哪些?HashMap用的哪种？**](#14102-解决hash冲突的办法有哪些hashmap用的哪种)
-    - [14.10.3. **为什么要在数组长度大于64之后，链表才会进化为红黑树**](#14103-为什么要在数组长度大于64之后链表才会进化为红黑树)
-    - [14.10.4. **哈希表底层采用何种算法计算hash值？还有哪些算法可以计算出hash值？**](#14104-哈希表底层采用何种算法计算hash值还有哪些算法可以计算出hash值)
-    - [14.10.5. **当两个对象的hashCode相等时会怎样**](#14105-当两个对象的hashcode相等时会怎样)
-    - [14.10.6. **何时发生哈希碰撞和什么是哈希碰撞，如何解决哈希碰撞？**](#14106-何时发生哈希碰撞和什么是哈希碰撞如何解决哈希碰撞)
-    - [14.10.7. ==HashMap的put方法流程==](#14107-hashmap的put方法流程)
-    - [14.10.8. ==HashMap的扩容方式==](#14108-hashmap的扩容方式)
-    - [14.10.9. **一般用什么作为HashMap的key？**](#14109-一般用什么作为hashmap的key)
-    - [14.10.10. **为什么Map桶中节点个数超过8才转为红黑树？**](#141010-为什么map桶中节点个数超过8才转为红黑树)
-    - [14.10.11. **HashMap为什么线程不安全？**](#141011-hashmap为什么线程不安全)
-    - [14.10.12. get流程](#141012-get流程)
-  - [14.11. Hashtable](#1411-hashtable)
-  - [14.12. ConcurrentHashMap](#1412-concurrenthashmap)
-    - [14.12.1. jdk1.7实现](#14121-jdk17实现)
-    - [14.12.2. Jdk1.8实现](#14122-jdk18实现)
-    - [14.12.3. put()执行流程](#14123-put执行流程)
-    - [14.12.4. 扩容机制](#14124-扩容机制)
-      - [14.12.4.1. ConcurrentHashMap 和 Hashtable 的区别？](#141241-concurrenthashmap-和-hashtable-的区别)
-  - [14.13. 迭代器 （Iterator ）](#1413-迭代器-iterator-)
-    - [14.13.1. 什么是迭代器（Iterator ）？](#14131-什么是迭代器iterator-)
-    - [14.13.2. Iterator 和foreach 遍历集合的区别？](#14132-iterator-和foreach-遍历集合的区别)
-    - [14.13.3. Iterator 和 ListIterator 有什么区别？](#14133-iterator-和-listiterator-有什么区别)
-  - [14.14. 讲一下ArrayDeque？](#1414-讲一下arraydeque)
-  - [14.15. 哪些集合类是线程安全的？哪些不安全？](#1415-哪些集合类是线程安全的哪些不安全)
-  - [14.16. 并发容器](#1416-并发容器)
-    - [14.16.1. ConcurrentLinkedQueue](#14161-concurrentlinkedqueue)
-    - [14.16.2. 阻塞队列](#14162-阻塞队列)
-      - [14.16.2.1. JDK提供的阻塞队列](#141621-jdk提供的阻塞队列)
-  - [14.17. 不同集合容量与扩容系数？](#1417-不同集合容量与扩容系数)
-  - [14.18. java8的ConcurrentHashMap为何放弃分段锁？](#1418-java8的concurrenthashmap为何放弃分段锁)
-
-<!-- /TOC -->
-
-# 14. Java集合手册(基础)
-
-## 14.1. 什么是Java的集合？使用集合有什么好处？
+## 什么是Java的集合？使用集合有什么好处？
 
 Java 的集合也称为容器，是用来**存放数据的容器**；不过注意，集合存放的只能是引用数据类型的数据，也就是一个个的对象（如果存入基本数据类型的数据，会自动装箱成包装类）。
 
@@ -126,17 +20,17 @@ Java 的集合也称为容器，是用来**存放数据的容器**；不过注�
 3.  使用集合之后，可以像操作基本数据类型那样来操作对象。
 4.  集合为我们提供了多种数据结构和操作的API，选用合适的集合，能够提程序性能和开发效率。
 
-### 14.1.1. Java集合综述
+### Java集合综述
 
-Java 集合，主要是由两大接口派生而来：一个是 Collection接口，主要用于存放单一元素；另一个是 Map 接口，主要用于存放键值对 。
+Java 集合，主要是由两大接口派生而来：一个是 Collection接口，主要用于存放单一元素；另一个是 Map 接口，主要用于存放键值对。
 
 **collection接口**
 
-![1644378594210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/114955-278078.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/114955-278078.png)
 
 **Map接口**
 
-![1644378606491](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/115007-802639.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/115007-802639.png)
 
 List是一个继承于Collection的接口，即List是集合中的一种。List是有序的队列，List中的每一个元素都有一个索引。和Set不同，List中允许有重复的元素，可以插入多个null元素。实现List接口的集合主要有：ArrayList、LinkedList、Vector、Stack。
 
@@ -157,7 +51,7 @@ map与List、Set接口不同，它是由一系列键值对组成的集合，提�
    -  HashMap是非线程安全的，HashTable是线程安全的;
    -  StringBuilder是非线程安全的，StringBuffer是线程安全的。
 
-## 14.2. 常用的集合类以及它们的特点？
+## 常用的集合类以及它们的特点？
 
 Java的集合类有两个父接口：Collection 接口和 Map 接口。
 
@@ -171,24 +65,29 @@ Map接口的主要实现类：HashMap、Hashtable、TreeMap 等。
 - Set接口的主要实现类：HashSet、TreeSet、LinkedHashSet 等。
    - Set 不能存放重复元素，无序的，只允许一个null；
 - Map 保存键值对映射；
-- List 底层实现有数组、[链表](https://www.nowcoder.com/jump/super-jump/word?word=%E9%93%BE%E8%A1%A8)两种方式；Set、Map 容器有基于哈希存储和[红黑树](https://www.nowcoder.com/jump/super-jump/word?word=%E7%BA%A2%E9%BB%91%E6%A0%91)两种方式实现
+- List 底层实现有数组、[链表](https://www.nowcoder.com/jump/super-jump/word?word=%E9%93%BE%E8%A1%A8)两种方式；Set、Map 容器有基于哈希存储和[红黑树](https://www.nowcoder.com/jump/super-jump/word?word=%E7%BA%A2%E9%BB%91%E6%A0%91)两种方式实现.
 - Set 基于 Map 实现，Set 里的元素值就是 Map的键值。
 
 **脑图**
 
-![1644383711619](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/131512-158738.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/131512-158738.png)
 
-### 14.2.1. Java集合框架中的快速失败（fail—fast）机制
+### Java集合框架中的快速失败（fail—fast）机制
 
-fail-fast机制，即快速失败机制，是java集合框架中的一种**错误检测机制**。
+Java集合框架中的快速失败（fail-fast） 机制是一种错误检测机制，用于在多线程环境下（或单线程迭代中修改集合结构时）及时发现并发修改问题。
 
 多线程下用**迭代器**遍历一个集合对象时，如果遍历过程中对集合对象的内容进行了修改（增加、删除），则会抛出ConcurrentModification Exception。fail-fast机制并不保证在不同步的修改下一定会抛出异常，这种机制一般仅用于检测bug。
+
+**什么是快速失败:**
+
+当多个线程对同一个集合进行结构修改（添加、删除、清空等）时，如果在迭代过程中检测到这种并发修改，会立即抛出 ConcurrentModificationException，而不是继续执行可能产生不确定结果的操作。
+
 
 采用快速失败机制的集合容器，使用迭代器进行遍历集合时，除了通过迭代器自身的 `remove()` 方法之外，对集合进行任何其他方式的结构性修改，则会抛出 ConcurrentModificationException 异常。
 
 在 `java.util` 包下的集合类都采用的是快速失败机制，不能在多线程下发生并发修改（迭代过程中被修改）。
 
-#### 14.2.1.1. 那么在实际测试代码当中是如何表现的呢？
+#### 那么在实际测试代码当中是如何表现的呢？
 
 ------
 
@@ -200,9 +99,48 @@ fail-fast机制，即快速失败机制，是java集合框架中的一种**错�
 >
 > 而迭代器在遍历时直接访问集合中的内容，并且在遍历过程中使用一个 modCount 变量。集合在被遍历期间如果内容发生变化，就会改变modCount的值。当迭代器使用hashNext()/next()遍历下一个元素之前，都会检测modCount变量是否为expectedModCount值，是的话就返回遍历；否则抛出异常，终止遍历。
 
-#### 14.2.1.2. 实现原理
+#### 实现原理
 
 原理：迭代器在遍历时直接访问集合中的内容，并且在遍历过程中使用一个 modCount 变量。集合在被遍历期间如果内容发生变化，就会**改变modCount的值**。每当迭代器使用hashNext()/next()遍历下一个元素之前，都会检测modCount变量是否为expectedmodCount值，是的话就返回遍历；否则抛出异常，终止遍历。
+
+**快速失败机制通过一个修改计数器（modCount） 实现:**
+
+```java
+// 以 ArrayList 为例
+public class ArrayList<E> extends AbstractList<E> {
+    protected transient int modCount = 0;  // 修改计数器
+    
+    public boolean add(E e) {
+        modCount++;  // 结构修改时递增
+        // ... 添加逻辑
+    }
+    
+    public E remove(int index) {
+        modCount++;  // 结构修改时递增
+        // ... 删除逻辑
+    }
+}
+```
+
+**迭代器中的检查**
+
+迭代器在初始化时记录当前的 modCount 值，并在每次操作前进行检查：
+
+```java
+private class Itr implements Iterator<E> {
+    int expectedModCount = modCount;  // 记录创建时的modCount
+    
+    public E next() {
+        checkForComodification();  // 检查是否被修改
+        // ... 返回下一个元素
+    }
+    
+    final void checkForComodification() {
+        if (modCount != expectedModCount)
+            throw new ConcurrentModidationException();
+    }
+}
+```
 
 这里异常的抛出条件是检测到 **modCount!=expectedmodCount**这个条件。如果集合发生变化时修改modCount值刚好又设置为了expectedmodCount值，则异常不会抛出。因此，不能依赖于这个异常是否抛出而进行并发操作的编程，这个异常只建议用于检测并发修改的bug。
 
@@ -213,32 +151,263 @@ fail-fast机制，即快速失败机制，是java集合框架中的一种**错�
 >5. 当每一次迭代时，迭代器会比较迭代器维护的字段和modCount的值是否相等，如果不相等就抛ConcurrentModifiedException异常；
 >6. 当然，如果用迭代器调用remove方法，那么集合和迭代器维护的修改次数都会递增，以保持两个状态的一致。
 
+#### 单线程环境中的fail-fast
+
+```java
+List<String> list = new ArrayList<>();
+list.add("A");
+list.add("B");
+list.add("C");
+
+Iterator<String> it = list.iterator();
+while (it.hasNext()) {
+    String item = it.next();
+    if (item.equals("B")) {
+        list.remove(item);  // 抛出 ConcurrentModificationException!
+        // 应该使用: it.remove();
+    }
+}
+```
+### 多线程环境中的fail-fast
+
+```java
+List<Integer> list = new ArrayList<>();
+
+// 线程1：迭代集合
+Thread t1 = new Thread(() -> {
+    Iterator<Integer> it = list.iterator();
+    while (it.hasNext()) {
+        System.out.println(it.next());
+        try { Thread.sleep(100); } catch (InterruptedException e) {}
+    }
+});
+
+// 线程2：修改集合
+Thread t2 = new Thread(() -> {
+    try { Thread.sleep(50); } catch (InterruptedException e) {}
+    list.add(100);  // 在线程1迭代过程中修改
+});
+
+t1.start();
+t2.start();  // 可能抛出 ConcurrentModificationException
+```
+
 **优缺点**
 
 - 单线程下效率相对较高。
 - 多线程环境下，线程不安全。
+
+**快速失败特点:**
+
+1. 立即失败：检测到修改立即抛出异常 
+2. 尽力而为：不保证100%检测到并发修改 
+3. 不可靠：仅用于检测bug，不能用于保证线程安全
 
 那么如何解决这种问题？
 
 1.  在遍历过程中，所有涉及到改变modCount值得地方全部加上synchronized。
 2.  使用 JUC 中的线程安全类来替代，比如使用 CopyOnWriteArrayList 来替代 ArrayList ，使用ConcurrentHashMap 来替代 HashMap 。
 
-### 14.2.2. 安全失败
+非线程安全集合（都支持fail-fast）:
+```shell
+ArrayList
+LinkedList
+HashMap
+TreeMap
+HashSet
+TreeSet
+```
+
+#### 如何避免ConcurrentModificationException？
+
+##### 单线程解决方案
+
+```java
+// 方法1：使用迭代器的remove方法
+Iterator<String> it = list.iterator();
+while (it.hasNext()) {
+    if (it.next().equals("item")) {
+        it.remove();  // 正确方式
+    }
+}
+
+// 方法2：使用Java 8+的removeIf
+list.removeIf(item -> item.equals("item"));
+
+// 方法3：使用CopyOnWriteArrayList（线程安全方式）
+List<String> safeList = new CopyOnWriteArrayList<>(list);
+for (String item : safeList) {
+    if (item.equals("item")) {
+        safeList.remove(item);
+    }
+}
+```
+
+##### 多线程解决方案
+
+```java
+// 使用并发集合（非fail-fast）
+List<String> list = Collections.synchronizedList(new ArrayList<>());
+// 或
+List<String> list = new CopyOnWriteArrayList<>();
+
+// 使用显式同步
+synchronized(list) {
+    Iterator<String> it = list.iterator();
+    while (it.hasNext()) {
+        it.next();
+    }
+}
+```
+
+##### 替代方案：安全失败（fail-safe）
+
+并发集合的实现:
+
+```java
+// CopyOnWriteArrayList - 写时复制
+List<String> list = new CopyOnWriteArrayList<>();
+
+// ConcurrentHashMap - 分段锁
+Map<String, String> map = new ConcurrentHashMap<>();
+```
+
+#### **fail-fast vs fail-safe**
+
+| 特性 | 快速失败（fail-fast）                  | 安全失败（fail-safe）                       |
+| :--- | :------------------------------------- | :------------------------------------------ |
+| 异常 | 抛出 `ConcurrentModificationException` | 不抛出异常                                  |
+| 克隆 | 不克隆原始数据                         | 迭代时复制原集合                            |
+| 性能 | 迭代开销小                             | 写操作开销大                                |
+| 示例 | `ArrayList`, `HashMap`                 | `CopyOnWriteArrayList`, `ConcurrentHashMap` |
+
+
+#### 最佳实践
+
+1. **单线程环境**：
+    - 使用迭代器自己的修改方法（`iterator.remove()`）
+    - 考虑使用 `removeIf()` 方法
+2. **多线程环境**：
+    - 使用并发集合（`ConcurrentHashMap`, `CopyOnWriteArrayList`）
+    - 使用 `Collections.synchronizedXXX()` 包装并手动同步
+    - 不要依赖fail-fast机制保证线程安全
+3. **性能考量**：
+    - fail-fast集合适合读多写少的场景
+    - fail-safe集合适合写多读少的并发场景
+
+快速失败机制是Java集合框架的重要设计，它帮助开发者早期发现并发修改错误，但在生产环境中应使用适当的并发控制机制而非依赖此异常处理。
+
+
+
+
+### 安全失败
+
+什么是安全失败?
+
+安全失败（fail-safe） 是Java并发集合采用的一种迭代策略，它允许在迭代过程中对集合进行修改，而不会抛出 ConcurrentModificationException。
+
 
 采用安全失败机制的集合容器，使用迭代器进行遍历时**不是直接在集合内容上访问**的，而是将原有集合内容进行**拷贝**，在拷贝的集合上进行遍历。
 
-#### 14.2.2.1. **原理**
+#### 安全失败原理
+
+##### 数据副本机制
+
+安全失败集合在迭代时创建原始数据的副本，迭代器遍历的是这个副本，而不是原始集合：
 
 迭代器在遍历时访问的是**拷贝的集合**，所以在遍历过程中对原集合所作的修改并不能被迭代器检测到，所以不会触发 ConcurrentModificationException 异常。
 
-#### 14.2.2.2. **优缺点**
+```java
+// CopyOnWriteArrayList 的迭代器实现
+public Iterator<E> iterator() {
+    return new COWIterator<E>(getArray(), 0);  // 传入数组快照
+}
 
-- 由于对集合进行了拷贝，避免了 ConcurrentModificationException 异常，但拷贝时产生大量的无效对象，开销大。
-- 无法保证读取到的数据是原集合中最新的数据，即迭代器进行遍历的是拷贝的集合，在遍历期间原集合发生的修改，迭代器是检测不到的。
+static final class COWIterator<E> implements ListIterator<E> {
+    private final Object[] snapshot;  // 迭代开始时创建的副本
+    private int cursor;
+    
+    COWIterator(Object[] elements, int initialCursor) {
+        cursor = initialCursor;
+        snapshot = elements;  // 保存数据快照
+    }
+    
+    public boolean hasNext() {
+        return cursor < snapshot.length;
+    }
+    
+    public E next() {
+        if (!hasNext()) throw new NoSuchElementException();
+        return (E) snapshot[cursor++];
+    }
+}
+```
 
->   **Ps：java.util.concurrent包下的容器都是安全失败，可以在多线程下并发使用，并发修改。**
+#####  写操作不影响读操作
 
-### 14.2.3. fail-fast和fail-safe区别？
+当修改集合时（添加、删除元素），会创建底层数据的新副本：
+
+```java
+// CopyOnWriteArrayList 的 add 方法
+public boolean add(E e) {
+    synchronized (lock) {
+        Object[] elements = getArray();
+        int len = elements.length;
+        Object[] newElements = Arrays.copyOf(elements, len + 1);  // 创建新数组
+        newElements[len] = e;
+        setArray(newElements);  // 替换引用
+        return true;
+    }
+}
+```
+
+####  常见的安全失败集合
+
+1、java.util.concurrent 包下的集合;
+```java
+// 写时复制列表
+List<String> list1 = new CopyOnWriteArrayList<>();
+
+// 并发哈希映射
+Map<String, String> map1 = new ConcurrentHashMap<>();
+
+// 写时复制数组集合
+Set<String> set1 = new CopyOnWriteArraySet<>();
+
+// 并发跳表集合
+NavigableSet<String> set2 = new ConcurrentSkipListSet<>();
+NavigableMap<String, String> map2 = new ConcurrentSkipListMap<>();
+```
+
+2、并发队列
+
+```java
+ConcurrentLinkedQueue<String> queue1 = new ConcurrentLinkedQueue<>();
+ConcurrentLinkedDeque<String> deque1 = new ConcurrentLinkedDeque<>();
+LinkedBlockingQueue<String> queue2 = new LinkedBlockingQueue<>();
+ArrayBlockingQueue<String> queue3 = new ArrayBlockingQueue<>(10);
+PriorityBlockingQueue<String> queue4 = new PriorityBlockingQueue<>();
+```
+
+
+### 安全失败集合的特点和限制
+
+优点
+1. 线程安全：真正的并发安全，无需外部同步 
+2. 无并发异常：迭代过程中可以安全修改 
+3. 弱一致性：迭代器看到的是创建时的快照
+
+缺点
+1. 内存开销：写操作需要复制整个数组 
+2. 数据延迟：迭代器看不到迭代开始后的修改 
+3. 写性能低：每次修改都需要复制 
+4. 由于对集合进行了拷贝，避免了 ConcurrentModificationException 异常，但拷贝时产生大量的无效对象，开销大。 
+5. 无法保证读取到的数据是原集合中最新的数据，即迭代器进行遍历的是拷贝的集合，在遍历期间原集合发生的修改，迭代器是检测不到的。
+
+
+> **Ps：java.util.concurrent包下的容器都是安全失败，可以在多线程下并发使用，并发修改。**
+
+### fail-fast和fail-safe区别？
 
 -  并发修改：
    -  当一个或多个线程正在遍历一个集合Collection，此时另一个线程修改了这个集合的内容（添加，删除或者修改）。
@@ -258,13 +427,27 @@ fail-fast机制，即快速失败机制，是java集合框架中的一种**错�
       -  需要复制集合，产生大量的无效对象，开销大
       -  无法保证读取的数据是目前原始数据结构中的数据。
 
-## 14.3. List
+**快速失败 vs 安全失败详细对比**
 
-### 14.3.1. ArrayList、LinkedList、Vector 各自的特点以及优缺点？
+| 特性           | 快速失败（fail-fast）                      | 安全失败（fail-safe）                       |
+| :------------- | :----------------------------------------- | :------------------------------------------ |
+| **异常行为**   | 立即抛出 `ConcurrentModificationException` | 不抛出并发修改异常                          |
+| **数据一致性** | 弱一致性，可能看到部分修改                 | 强一致性（迭代快照）                        |
+| **迭代器视图** | 实时视图，反映最新修改                     | 创建时的快照视图                            |
+| **内存开销**   | 低（无额外副本）                           | 高（创建数据副本）                          |
+| **线程安全**   | 需要外部同步                               | 内置线程安全                                |
+| **性能特点**   | 读快写快，但迭代中修改会失败               | 读快，写慢（需要复制）                      |
+| **使用场景**   | 单线程或需要立即失败检测                   | 多线程并发访问                              |
+| **代表实现**   | `ArrayList`, `HashMap`, `HashSet`          | `CopyOnWriteArrayList`, `ConcurrentHashMap` |
 
-![1644383788472](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/131633-987378.png)
 
-### 14.3.2. ArrayList 了解吗？
+## List集合
+
+### ArrayList、LinkedList、Vector 各自的特点以及优缺点？
+
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/131633-987378.png)
+
+### ArrayList 了解吗？
 
 `ArrayList` 的底层是动态数组，它的容量能动态增长。在添加大量元素前，应用可以使用`ensureCapacity`操作增加 `ArrayList` 实例的容量。ArrayList 继承了 AbstractList ，并实现了 List 接口。
 
@@ -272,7 +455,7 @@ fail-fast机制，即快速失败机制，是java集合框架中的一种**错�
 
 指定长度，生成长度数组，每次扩容会变成原来的1.5倍，然后新建一个数组进行元素复制。
 
-### 14.3.3. ArrayList 的扩容机制？
+### ArrayList 的扩容机制？
 
 -  先计算新数组的大小
    -  一般为原数组大小的1.5倍
@@ -332,18 +515,18 @@ private void grow(int minCapacity) {
     }
 ~~~
 
-### 14.3.4. ArrayList为什么线程不安全还使用他呢？
+### ArrayList为什么线程不安全还使用他呢？
 
 -  因为ArrayList在正常使用的场景中，都是用来做查询的，不会涉及太频繁的增删，如果涉及频繁的增删的话，可以采用LinkedList，如果还需要线程安全的话，可以使用vector。
 
-### 14.3.5. ArrayList的底层实现是数组，添加数据的话，会有问题吗？
+### ArrayList的底层实现是数组，添加数据的话，会有问题吗？
 
 -  ArrayList可以通过构造函数指定底层数组的大小
 -  无参构造器赋值底层数组为一个默认的空数组，只有真正添加数据时，才分配默认10的初始容量。
 -  ArrayList通过扩容的方式来实现长度动态增长。
 -  比如如果一个10的数组装满了，再新增的时候，会重新定义一个长度为10+10/2的数组，然后把原数组的数据原封不动的复制到新数组中，这个时候再把指向原数组的地址换到新数组。
 
-### 14.3.6. ArrayList在增删的时候是怎么做的么？主要说一下他为啥慢。
+### ArrayList在增删的时候是怎么做的么？主要说一下他为啥慢。
 
 -  首先，在新增方面，ArrayList有指定index新增，也有直接新增的
 -  在新增之前，会先校验数组的长度是否足够，不足的话会进行扩容。
@@ -352,12 +535,12 @@ private void grow(int minCapacity) {
 -  其次，在删除方面，ArrayList所采用的方法与新增相似，都是采用数组copy的方法
 -  比如说，要删除5位置的元素，那ArrayList就将5+1到数组末尾的元素复制到5位置处，5位置处的元素被覆盖了，看起来就像是被删除了。由此可见，删除方法效率同样很低。
 
-### 14.3.7. ArrayList插入删除一定慢么？
+### ArrayList插入删除一定慢么？
 
 -  这取决于插入和删除的位置距离数组的末端有多远。
 -  ArrayList作为堆栈来用还是比较合适的，push和pop操作完全不涉及数据移动操作。
 
-### 14.3.8. 怎么在遍历 ArrayList 时移除一个元素？
+### 怎么在遍历 ArrayList 时移除一个元素？
 
 foreach删除会导致快速失败问题，可以使用迭代器的 remove() 方法。
 
@@ -370,7 +553,7 @@ while(itr.hasNext()) {
 }
 ~~~
 
-### 14.3.9. ArrayList 和 Vector 的区别/异同？
+### ArrayList 和 Vector 的区别/异同？
 
 Vector类 是List接口的古老实现类(JDK1.0就有了)，ArrayList类 是List接口的主要的常用的实现类(JDK1.2新增的)。
 
@@ -380,7 +563,7 @@ Vector类 的方法全都是同步的，两个线程可以安全的访问一个V
 
 Vector扩容方式默认是 当前容量的1倍；ArrayList扩容是 当前容量×1.5+1 。
 
-### 14.3.10. ArrayList 和 LinkedList 的区别/异同？
+### ArrayList 和 LinkedList 的区别/异同？
 
 （其实大部分的区别就是数据结构的区别，一个是数组，一个是双向[链表]()）。
 
@@ -391,7 +574,7 @@ Vector扩容方式默认是 当前容量的1倍；ArrayList扩容是 当前容�
 5.  ArrayList 需要扩容，扩容是 当前容量×1.5+1 ； LinkedList 无需扩容。
 6.  ArrayList 和 LinkedList 都不是同步的，都是不保证线程安全。
 
-### 14.3.11. ArryList 是线程不安全的？为什么？
+### ArryList 是线程不安全的？为什么？
 
 ArrayList 是线程不安全的，因为ArrayList里的方法没有加锁，也没有使用其他保证线程安全的措施；当多个线程来对 ArrayList 进行操作时，就会出现并发修改异常。
 
@@ -405,7 +588,7 @@ ArrayList 是线程不安全的，因为ArrayList里的方法没有加锁，也�
 
 ArrayList 的 add() 只是先检查了容量大小，然后就直接插入数据了，并没有做任何保证线程安全的操作，如此一来，多个线程同时来调用这个方法，就会出现线程安全的问题。
 
-### 14.3.12. 如何解决 ArrayList 线程不安全的问题？
+### 如何解决 ArrayList 线程不安全的问题？
 
 解决 ArrayList 线程安全的办法有3种：
 
@@ -413,7 +596,7 @@ ArrayList 的 add() 只是先检查了容量大小，然后就直接插入数据
 2.  **Collections 工具类转换。**
 3.  **JUC 中的 CopyOnWriteArrayList。**
 
-#### 14.3.12.1. **解决集合类不安全的方法 1 —— Vector**
+#### **解决集合类不安全的方法 1 —— Vector**
 
 Vector 是 List 接口的古老实现类，ArrayList 是 List 接口后面新增的实现类。除了线程安全问题与扩容方式不同，Vector 几乎与 ArrayList 一样。
 
@@ -421,7 +604,7 @@ Vector 是 List 接口的古老实现类，ArrayList 是 List 接口后面新增
 
 > （顺便说一下，其实 Vector 很多其他方法也加了锁，比如读方法，相当于读的时候，同一时刻也只能有一个线程能读，效率很低。）
 
-#### 14.3.12.2. **解决集合类不安全的方法 2 —— Collections**
+#### **解决集合类不安全的方法 2 —— Collections**
 
 Collections 是 Collection 的工具类，其中就提供了一个 synchronizedList() 方法，可以将线程不安全的 ArrayList 转换成线程安全的。
 
@@ -429,7 +612,7 @@ Collections 是 Collection 的工具类，其中就提供了一个 synchronizedL
 
 原理是在 arrayList 的 add() 的外面套了一层 synchronized 锁！并且 Collections 工具类也支持将 HashMap, HashSet 之类的转换成线程安全的。
 
-#### 14.3.12.3. **解决集合类不安全的方法 3 —— CopyOnWriteArrayList（写时复制）**
+#### **解决集合类不安全的方法 3 —— CopyOnWriteArrayList（写时复制）**
 
 CopyOnWriteArrayList 是 java.util.concurrent 包里的类，是个线程安全的类。
 
@@ -455,15 +638,15 @@ CopyOnWriteArrayList 是 java.util.concurrent 包里的类，是个线程安全�
 >
 > 其中的 setArray 方法中的 array 是用 volatile 修饰的，可以保证可见性：
 
-## 14.4. CopyOnWriteArrayList
+## CopyOnWriteArrayList
 
-### 14.4.1. 读写分离
+### 读写分离
 
 写操作在一个复制的数组上进行，读操作还是在原始数组中进行，读写分离，互不影响。
 
 写操作需要加锁，防止并发写入时导致写入数据丢失。写操作结束之后需要把原始数组指向新的复制数组。
 
-### 14.4.2. 优缺点
+### 优缺点
 
 **优点**：CopyOnWriteArrayList在写操作的同时允许读操作，大大提高了读操作的性能，因此很适合读多写少的应用场景。
 
@@ -471,7 +654,7 @@ CopyOnWriteArrayList 是 java.util.concurrent 包里的类，是个线程安全�
 
 数据不一致：读操作不能读取实时性的数据，因为部分写操作的数据还未同步到读数组中。
 
-## 14.5. Map
+## Map集合
 
 ### 14.5.1. HashMap的底层实现原理？
 

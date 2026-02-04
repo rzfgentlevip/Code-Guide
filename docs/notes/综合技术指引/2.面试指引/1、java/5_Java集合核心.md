@@ -1,78 +1,13 @@
 ---
-title: Java集合手册(精简版)
+title: 5、Java集合核心
 icon: devicon:java-wordmark
-order: 2
+order: 5
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
-category:
-  - 面试
-  - JAVA
-tag:
-  - 面试
-  - java
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 11:14:44
 permalink: /compre-guide/interview/java/java集合提高/
 ---
-
-<!-- TOC -->
-
-- [Java集合手册(精简版)](#java集合手册精简版)
-    - [常用的集合类有哪些](#常用的集合类有哪些)
-    - [为什么集合类没有实现Cloneable和Serializable接口？](#为什么集合类没有实现cloneable和serializable接口)
-    - [List，Set，Map三者的区别？](#listsetmap三者的区别)
-    - [常用集合框架底层数据结构](#常用集合框架底层数据结构)
-    - [哪些集合类是线程安全的？](#哪些集合类是线程安全的)
-    - [迭代器 Iterator 是什么](#迭代器-iterator-是什么)
-    - [Iterator和ListIterator的区别是什么？](#iterator和listiterator的区别是什么)
-    - [Java集合的快速失败机制 “fail-fast”和安全失败机制“failsafe”是什么？](#java集合的快速失败机制-fail-fast和安全失败机制failsafe是什么)
-    - [如何边遍历边移除 Collection 中的元素？](#如何边遍历边移除-collection-中的元素)
-    - [Array 和 ArrayList 有何区别？](#array-和-arraylist-有何区别)
-    - [comparable 和 comparator的区别？](#comparable-和-comparator的区别)
-    - [快速失败(fail-fast)和安全失败(fail-safe)的区别是什么？](#快速失败fail-fast和安全失败fail-safe的区别是什么)
-    - [Collection 和 Collections 有什么区别？](#collection-和-collections-有什么区别)
-    - [List集合](#list集合)
-      - [遍历一个 List 有哪些不同的方式？](#遍历一个-list-有哪些不同的方式)
-      - [ArrayList的扩容机制](#arraylist的扩容机制)
-      - [ArrayList 和 LinkedList 的区别是什么？](#arraylist-和-linkedlist-的区别是什么)
-      - [ArrayList 和 Vector 的区别是什么？](#arraylist-和-vector-的区别是什么)
-      - [简述 ArrayList、Vector、LinkedList 的存储性能和特性？](#简述-arraylistvectorlinkedlist-的存储性能和特性)
-    - [Set集合](#set集合)
-      - [说一下 HashSet 的实现原理](#说一下-hashset-的实现原理)
-      - [HashSet如何检查重复？（HashSet是如何保证数据不可重复的？）](#hashset如何检查重复hashset是如何保证数据不可重复的)
-      - [HashSet与HashMap的区别](#hashset与hashmap的区别)
-    - [Map集合](#map集合)
-      - [HashMap的工作原理](#hashmap的工作原理)
-      - [HashMap在JDK1.7和JDK1.8中有哪些不同？HashMap的底层实现](#hashmap在jdk17和jdk18中有哪些不同hashmap的底层实现)
-      - [HashMap 的长度为什么是2的幂次方](#hashmap-的长度为什么是2的幂次方)
-      - [HashMap的put方法的具体流程？](#hashmap的put方法的具体流程)
-      - [HashMap的扩容操作是怎么实现的？](#hashmap的扩容操作是怎么实现的)
-      - [HashMap默认加载因子为什么选择0.75？](#hashmap默认加载因子为什么选择075)
-      - [为什么要将链表中转红黑树的阈值设为8？为什么不一开始直接使用红黑树？](#为什么要将链表中转红黑树的阈值设为8为什么不一开始直接使用红黑树)
-      - [HashMap是怎么解决哈希冲突的？](#hashmap是怎么解决哈希冲突的)
-      - [HashMap为什么不直接使用hashCode()处理后的哈希值直接作为table的下标？](#hashmap为什么不直接使用hashcode处理后的哈希值直接作为table的下标)
-      - [能否使用任何类作为 Map 的 key？](#能否使用任何类作为-map-的-key)
-      - [为什么HashMap中String、Integer这样的包装类适合作为Key？](#为什么hashmap中stringinteger这样的包装类适合作为key)
-      - [如果使用Object作为HashMap的Key，应该怎么办呢？](#如果使用object作为hashmap的key应该怎么办呢)
-      - [HashMap 多线程导致死循环问题](#hashmap-多线程导致死循环问题)
-      - [ConcurrentHashMap 底层具体实现知道吗？](#concurrenthashmap-底层具体实现知道吗)
-      - [HashTable的底层实现知道吗？](#hashtable的底层实现知道吗)
-      - [HashMap和Hashtable有什么区别？](#hashmap和hashtable有什么区别)
-      - [HashMap、ConcurrentHashMap及Hashtable 的区别](#hashmapconcurrenthashmap及hashtable-的区别)
-      - [集合的常用方法](#集合的常用方法)
-      - [Collection常用方法](#collection常用方法)
-      - [List特有方法](#list特有方法)
-      - [LinkedList特有方法](#linkedlist特有方法)
-      - [Map](#map)
-      - [Stack](#stack)
-      - [Queue](#queue)
-
-<!-- /TOC -->
-
-# Java集合手册(精简版)
 
 ### 常用的集合类有哪些
 

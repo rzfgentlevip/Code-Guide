@@ -1,94 +1,13 @@
 ---
-title: 并发编程手册（精简版）
+title: 3、Java并发编程核心
 icon: cbi:thread-net
-order: 4
+order: 3
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
-category:
-  - 面试
-  - JAVA
-tag:
-  - 面试
-  - java
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2026/01/17 13:24:48
-permalink: /compre-guide/interview/java/java多线程提高/
+permalink: /compre-guide/interview/java/Java并发编程核心/
 ---
-<!-- TOC -->
-
-- [并发变成（精简版）](#并发变成精简版)
-      - [java线程和操作系统线程的区别](#java线程和操作系统线程的区别)
-        - [用户态线程](#用户态线程)
-        - [内核态线程](#内核态线程)
-        - [线程源码](#线程源码)
-      - [什么是进程](#什么是进程)
-      - [什么是线程](#什么是线程)
-      - [进程和线程的区别？](#进程和线程的区别)
-      - [线程分类](#线程分类)
-      - [java中有哪些锁](#java中有哪些锁)
-        - [乐观锁](#乐观锁)
-        - [悲观锁](#悲观锁)
-        - [自旋锁](#自旋锁)
-        - [Synchronized 同步锁](#synchronized-同步锁)
-      - [锁的优化](#锁的优化)
-    - [说说什么是线程安全？如何实现线程安全？](#说说什么是线程安全如何实现线程安全)
-      - [追问1：synsynchronized和ReentLock的区别是什么？](#追问1synsynchronized和reentlock的区别是什么)
-      - [相同点：](#相同点)
-      - [不同点：](#不同点)
-      - [synsynchronized和volatile的区别](#synsynchronized和volatile的区别)
-      - [Synchronized关键字的原理介绍一下？](#synchronized关键字的原理介绍一下)
-      - [synchronized锁升级的过程说一下？](#synchronized锁升级的过程说一下)
-      - [无锁](#无锁)
-      - [偏向锁：](#偏向锁)
-      - [轻量级锁](#轻量级锁)
-      - [锁小结](#锁小结)
-      - [synchronize锁的作用范围](#synchronize锁的作用范围)
-    - [Java中线程的状态有哪些？线程间的通信方式有哪些？](#java中线程的状态有哪些线程间的通信方式有哪些)
-      - [线程的阻塞方式](#线程的阻塞方式)
-      - [终止线程的四种方式](#终止线程的四种方式)
-      - [sleep后进入什么状态，wait后进入什么状态？](#sleep后进入什么状态wait后进入什么状态)
-      - [sleep和wait的区别？](#sleep和wait的区别)
-      - [wait为什么是数Object类下面的方法？](#wait为什么是数object类下面的方法)
-      - [notify()和 notifyAll()有什么区别？](#notify和-notifyall有什么区别)
-      - [start方法和run方法有什么区别？](#start方法和run方法有什么区别)
-    - [AQS了解吗？](#aqs了解吗)
-      - [Java中的并发关键字](#java中的并发关键字)
-      - [ReentrantLock](#reentrantlock)
-      - [Semaphore（信号量）](#semaphore信号量)
-      - [countDownLatch](#countdownlatch)
-      - [CyclicBarrier（同步屏障）](#cyclicbarrier同步屏障)
-    - [介绍一下CAS](#介绍一下cas)
-      - [CAS带来的问题是什么？如何解决的？](#cas带来的问题是什么如何解决的)
-      - [什么是乐观锁，什么是悲观锁？](#什么是乐观锁什么是悲观锁)
-    - [Java中创建线程的方式有哪些？](#java中创建线程的方式有哪些)
-      - [线程池的好处？说几个Java中常见的线程池？说一下其中的参数和运行流程？](#线程池的好处说几个java中常见的线程池说一下其中的参数和运行流程)
-      - [拒绝策略有哪些？](#拒绝策略有哪些)
-      - [Java中常见的阻塞队列有哪些？](#java中常见的阻塞队列有哪些)
-    - [ThreaLocal知道吗？](#threalocal知道吗)
-      - [用它可能会带来什么问题？](#用它可能会带来什么问题)
-      - [什么是强软弱虚引用？](#什么是强软弱虚引用)
-    - [JUC工具类](#juc工具类)
-      - [原子整数类](#原子整数类)
-      - [锁](#锁)
-      - [其他并发容器和工具](#其他并发容器和工具)
-      - [补充CopyOnWriteArrayList](#补充copyonwritearraylist)
-    - [线程死锁](#线程死锁)
-      - [死锁的四个必要条件：](#死锁的四个必要条件)
-      - [如何避免：](#如何避免)
-      - [如何解除：](#如何解除)
-      - [如何排查：](#如何排查)
-    - [Volatile关键字](#volatile关键字)
-      - [什么是JMM](#什么是jmm)
-      - [介绍一下volatile关键字](#介绍一下volatile关键字)
-      - [原子性、可见性、有序性](#原子性可见性有序性)
-    - [多线程面试重点总结](#多线程面试重点总结)
-
-<!-- /TOC -->
-# 并发变成（精简版）
-
 
 #### java线程和操作系统线程的区别
 
