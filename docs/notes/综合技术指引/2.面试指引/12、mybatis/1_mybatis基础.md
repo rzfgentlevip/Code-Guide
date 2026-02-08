@@ -1,56 +1,13 @@
 ---
-title: Mybatis技术手册
+title: 1、Mybatis基础
 icon: token-branded:ardr
 order: 1
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
-category:
-  - 面试
-  - MYBATIS
-tag:
-  - 面试
-  - mybatis
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2026/01/17 14:01:38
-permalink: /compre-guide/interview/mybatis/mybatis基础/
+permalink: /compre-guide/interview/mybatis/Mybatis基础/
 ---
-<!-- TOC -->
-
-- [Mybatis技术手册](#mybatis技术手册)
-  - [基础](#基础)
-    - [1、Mybatis的一级、二级缓存](#1mybatis的一级二级缓存)
-    - [2、Mybatis 的一级缓存原理（sqlsession 级别）](#2mybatis-的一级缓存原理sqlsession-级别)
-    - [3、二级缓存原理（Mapper 级别）](#3二级缓存原理mapper-级别)
-    - [4、resultType和resultMap的区别？](#4resulttype和resultmap的区别)
-    - [5、为什么说Mybatis是半自动 ORM 映射工具？它与全自动的区别在哪里？](#5为什么说mybatis是半自动-orm-映射工具它与全自动的区别在哪里)
-    - [6、MyBatis 动态sql有什么用？执行原理？有哪些动态sql？](#6mybatis-动态sql有什么用执行原理有哪些动态sql)
-    - [7、MyBatis如何获取自动生成的(主)键值?](#7mybatis如何获取自动生成的主键值)
-    - [8、传统JDBC开发存在的问题](#8传统jdbc开发存在的问题)
-    - [9、`#{}和${}`的区别](#9和的区别)
-    - [10、MyBatis实现一对一，一对多有几种方式，怎么操作的？](#10mybatis实现一对一一对多有几种方式怎么操作的)
-    - [11、Mybatis是否可以映射Enum枚举类？](#11mybatis是否可以映射enum枚举类)
-    - [12、在mapper中如何传递多个参数](#12在mapper中如何传递多个参数)
-      - [1、顺序传参法](#1顺序传参法)
-      - [2、@Param注解传参法](#2param注解传参法)
-      - [3、Map传参法](#3map传参法)
-      - [4、Java Bean传参法](#4java-bean传参法)
-    - [13、Mybatis中如何指定使用哪一种Executor执行器？](#13mybatis中如何指定使用哪一种executor执行器)
-    - [14、Mybatis是否支持延迟加载？如果支持，它的实现原理是什么？](#14mybatis是否支持延迟加载如果支持它的实现原理是什么)
-    - [15、为什么需要预编译](#15为什么需要预编译)
-    - [16、Mybatis都有哪些Executor执行器？它们之间的区别是什么？](#16mybatis都有哪些executor执行器它们之间的区别是什么)
-    - [17、Mybatis中如何指定使用哪一种Executor执行器？](#17mybatis中如何指定使用哪一种executor执行器)
-    - [18、MyBatis的框架架构设计是怎么样的](#18mybatis的框架架构设计是怎么样的)
-    - [19、模糊查询like语句该怎么写](#19模糊查询like语句该怎么写)
-    - [20、Mybatis 是如何进行分页的？分页插件的原理是什么？](#20mybatis-是如何进行分页的分页插件的原理是什么)
-
-<!-- /TOC -->
-
-# Mybatis技术手册
-
-## 基础
 
 ### 1、Mybatis的一级、二级缓存
 
