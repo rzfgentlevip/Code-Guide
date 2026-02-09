@@ -1,20 +1,12 @@
 ---
-title: Mybatis技术文档
+title: 1、Mybatis教程
 icon: material-icon-theme:folder-tools-open
-order: 5
+order: 1
 author: bugcode
 date: 2024-11-19T00:00:00.000Z
-category:
-  - MYBATIS
-  - JAVA
-tag:
-  - mybatis
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2025/09/04 14:46:24
-permalink: /learning-notes/backend/mybatis/basic/
+permalink: /learning-notes/backend/mybatis/Mybatis教程/
 ---
 
 # Mybatis技术文档

@@ -11,9 +11,28 @@ permalink: /compre-guide/interview/mybatis/Mybatis基础/
 
 ### 1、Mybatis的一级、二级缓存
 
-1. 一级缓存: 基于 PerpetualCache 的 HashMap 本地缓存，其存储作用域为 Session，当 Session flush 或 close 之后，该 Session 中的所有 Cache 就将清空，默认打开一级缓存。
-2. 二级缓存与一级缓存其机制相同，默认也是采用 PerpetualCache，HashMap 存储，不同在于其存储作用域为 Mapper(Namespace)，并且可自定义存储源，如 Ehcache。默认不打开二级缓存，要开启二级缓存，使用二级缓存属性类需要实现Serializable序列化接口(可用来保存对象的状态),可在它的映射文件中配置；
-3. 对于缓存数据更新机制，当某一个作用域(一级缓存 Session/二级缓存Namespaces)的进行了C/U/D 操作后，默认该作用域下所有 select 中的缓存将被 clear
+（1）一级缓存
+
+MyBatis的一级缓存是SqlSession级别的缓存，也就是说当我们执行查询之后，会将查询的结果放在SqlSession的缓存中。
+
+对于同一个SqlSession，当执行相同的查询时，MyBatis会先查看一级缓存中是否有相同的查询结果，如果有，则直接返回缓存的结果，而不再去数据库中查询。
+
+一级缓存是MyBatis默认开启的，它可以减少对数据库的访问，提高查询性能。
+一级缓存: 基于 PerpetualCache 的 HashMap 本地缓存，其存储作用域为 Session，当 Session flush 或 close 之后，该 Session 中的所有 Cache 就将清空，默认打开一级缓存。
+
+（2）二级缓存
+
+MyBatis的二级缓存是Mapper级别的缓存，它可以跨SqlSession共享缓存数据。
+
+二级缓存是在Mapper的映射文件配置开启的，我们可以在Mapper的映射文件中配置元素来开启二级缓存。
+
+使用二级缓存时，要确保查询的 SQL 语句和参数是完全相同的，否则 MyBatis 会认为它们是不同的查询，从而不会从二级缓存中获取数据。
+
+对于频繁更新的数据，不建议使用二级缓存，因为频繁的更新会导致缓存失效，反而降低性能。
+
+二级缓存与一级缓存其机制相同，默认也是采用 PerpetualCache，HashMap 存储，不同在于其存储作用域为 Mapper(Namespace)，并且可自定义存储源，如 Ehcache。默认不打开二级缓存，要开启二级缓存，使用二级缓存属性类需要实现Serializable序列化接口(可用来保存对象的状态),可在它的映射文件中配置；
+
+> 对于缓存数据更新机制，当某一个作用域(一级缓存 Session/二级缓存Namespaces)的进行了C/U/D 操作后，默认该作用域下所有 select 中的缓存将被 clear;
 
 ### 2、Mybatis 的一级缓存原理（sqlsession 级别）
 
@@ -112,12 +131,57 @@ Mybatis在查询关联对象或关联集合对象时，需要手动编写sql来�
 
 ### 9、`#{}和${}`的区别
 
-1. #{}是占位符，预编译处理；${}是拼接符，字符串替换，没有预编译处理。
-2. Mybatis在处理#{}时，#{}传入参数是以字符串传入，会将SQL中的#{}替换为?号，调用PreparedStatement的set方法来赋值。
-3. Mybatis在处理时 ,是 原 值 传 入 ， 就 是 把 {}时，是原值传入，就是把时，是原值传入，就是把{}替换成变量的值，相当于JDBC中的Statement编译
-4. 变量替换后，#{} 对应的变量自动加上单引号 ‘’；变量替换后，${} 对应的变量不会加上单引号 ‘’
-5. #{} 可以有效的防止SQL注入，提高系统安全性；${} 不能防止SQL 注入
-6. #{} 的变量替换是在DBMS 中；${} 的变量替换是在 DBMS 外
+1、预处理方式不同
+
+#{} - 预编译处理（推荐）
+```sql
+SELECT * FROM users WHERE id = #{userId}
+```
+- MyBatis 会将其转换为 ? 占位符，使用 PreparedStatement 的 set 方法安全赋值 
+- 最终执行的 SQL：SELECT * FROM users WHERE id = ?
+- 防止 SQL 注入
+
+${} - 字符串替换
+
+```sql
+SELECT * FROM ${tableName} WHERE id = ${userId}
+```
+
+- 直接替换为字符串值，原样拼接到 SQL 中 
+- 最终执行的 SQL：SELECT * FROM users WHERE id = 1 
+- 有 SQL 注入风险
+
+
+| 特性         | `#{}`                    | `${}`            |
+| :----------- | :----------------------- | :--------------- |
+| **SQL注入**  | 安全，自动转义           | 不安全，直接拼接 |
+| **预编译**   | 支持                     | 不支持           |
+| **数据类型** | 自动转换类型             | 纯字符串替换     |
+| **性能**     | 可预编译，可缓存执行计划 | 每次都要重新编译 |
+
+使用 #{} 的场景（参数值）
+```sql
+<!-- 动态表名、列名（注意：确保值可信） -->
+SELECT * FROM ${tableName}
+ORDER BY ${orderColumn}
+GROUP BY ${groupField}
+```
+
+使用 ${} 的场景（动态部分）
+```sql
+<!-- 动态表名、列名（注意：确保值可信） -->
+SELECT * FROM ${tableName}
+ORDER BY ${orderColumn}
+GROUP BY ${groupField}
+```
+
+**小结**
+
+1. 绝大部分情况使用 #{}，特别是用户输入的值 
+2. 谨慎使用 ${}，仅用于动态 SQL 部分（表名、列名等），且确保值来源可信 
+3. 永远不要用 ${} 接收用户输入，否则会存在 SQL 注入漏洞 
+4. 使用 ${} 时，最好在业务层进行白名单验证
+
 
 ### 10、MyBatis实现一对一，一对多有几种方式，怎么操作的？
 
@@ -231,9 +295,7 @@ Mybatis有三种基本的Executor执行器，SimpleExecutor、ReuseExecutor、Ba
 
 ### 18、MyBatis的框架架构设计是怎么样的
 
-![image-20241206125915416](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/image-20241206125915416.png)
-
-
+![](./image/mybatis架构.png)
 
 这张图从上往下看。MyBatis的初始化，会从mybatis-config.xml配置文件，解析构造成Configuration这个类，就是图中的红框。
 
@@ -244,6 +306,14 @@ Mybatis有三种基本的Executor执行器，SimpleExecutor、ReuseExecutor、Ba
 (3)SQL执行：将最终得到的SQL和参数拿到数据库进行执行，得到操作数据库的结果。
 
 (4)结果映射：将操作数据库的结果按照映射的配置进行转换，可以转换成HashMap、JavaBean或者基本数据类型，并将最终结果返回。
+
+**mybatis执行架构**
+
+![](./image/mybatis执行架构.png)
+
+**mybatis执行流程:**
+
+![](./image/mybatis执行流程.png)
 
 ### 19、模糊查询like语句该怎么写
 
@@ -267,7 +337,384 @@ Mybatis有三种基本的Executor执行器，SimpleExecutor、ReuseExecutor、Ba
 1. Mybatis 使用 RowBounds 对象进行分页，也可以直接编写 sql 实现分页，也可以使用Mybatis 的分页插件。
 2. 分页插件的原理：实现 Mybatis 提供的接口，实现自定义插件，在插件的拦截方法内拦截待执行的 sql，然后重写 sql。
 
-```plain
+```sql
 select * from student，拦截 sql 后重写为：select t.* from （select * from student）t limit 0，10
 ```
 
+### **21、使用${}时，如何防止SQL注入？**
+
+（1）白名单校验
+
+在将参数传递给SQL语句之前，对参数值进行验证，确保它们符合预期的格式或范围。这可以通过正则表达式、字符串比较或其他逻辑来实现。
+
+避免敏感操作，比如DROP、TRUNCATE 等。
+
+（2）转义特殊字符
+
+对于可能引起注入的特殊字符，需要进行合适的转义处理，比如对单引号、双引号、分号等特殊字符进行转义，防止它们被误解为SQL命令的一部分。
+
+（3）使用数据库权限控制
+
+确保数据库用户只有执行必要操作的权限，避免给予过多的权限。这样即使发生了 SQL 注入攻击，攻击者也只能执行有限的操作。
+
+（4）日志记录和监控
+
+记录所有执行的 SQL 语句，并监控任何异常或可疑行为。这有助于及时发现并应对潜在的 SQL 注入攻击。
+
+### **22、mybatis 是否支持延迟加载？延迟加载的原理是什么？**
+
+MyBatis支持延迟加载，它允许在需要时动态地加载与某个对象关联的数据。延迟加载可以帮助减少不必要的数据库查询，提高性能，并且提供了一种方便的方式来管理复杂对象之间的关联关系。
+
+延迟加载的原理是，在查询主对象时，并不会立即加载关联对象的信息，而是在真正需要使用这些关联对象的时候再去发起对关联对象的查询。具体来说，延迟加载通常使用代理对象（Proxy）来实现。当主对象被查询并加载到内存中时，关联对象并没有被加载，而是创建一个代理对象来代替关联对象的位置。当应用程序实际使用关联对象的属性或方法时，代理对象会拦截这些调用，并触发对关联对象数据的实际加载查询，然后返回结果给应用程序。
+
+在MyBatis中，延迟加载通常与二级缓存（二级缓存是一种全局性的缓存机制，可以跨多个会话对查询进行缓存）结合使用，可以延迟加载对象的时候首先尝试从二级缓存中获取数据，如果缓存中不存在再去查询数据库。
+
+延迟加载可以提高查询性能，特别是在处理大量数据或者复杂关联查询的时候。但是，它也会增加一些额外的内存开销，因为需要创建代理对象，并且在访问数据时需要进行额外的数据库查询操作。因此，在使用延迟加载时需要根据具体的业务需求和性能要求进行权衡。
+
+### **23、mybatis 有哪些执行器（Executor）？**
+
+（1）简单执行器SimpleExecutor
+
+SimpleExecutor是MyBatis默认的执行器，它对每个SQL语句的执行进行了封装，每次都会生成一个新的Statement对象，并执行SQL语句，SimpleExecutor适用于短时、简单的操作。
+
+（2）重用执行器ReuseExecutor
+
+ReuseExecutor是一种复用的执行器，它会在多次执行相同SQL语句时重用Statement对象，从而减少了Statement对象的创建和销毁，提升了性能。
+
+（3）批处理执行器BatchExecutor
+
+BatchExecutor是一种执行器，用于批量操作。当我们需要执行批量的SQL语句时，可以使用BatchExecutor来提高性能。BatchExecutor通过快速执行批量的SQL语句，来减少与数据库的交互次数，提高操作的效率。
+
+### **24、mybatis中如何设置执行器？**
+
+（1）全局设置
+
+Spring集成MyBatis时，执行器的设置通常是在Spring的配置文件中进行的。你可以通过配置SqlSessionFactoryBean的executorType属性来指定执行器类型。例如：
+
+```xml
+<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">  
+    <property name="dataSource" ref="dataSource" />  
+    <property name="configLocation" value="classpath:mybatis-config.xml" />  
+    <property name="executorType" value="REUSE"/> 
+</bean>
+```
+
+这个设置会影响所有的SqlSession，但不建议全局修改执行器类型，因为这可能会对性能产生不必要的影响。
+
+（2）局部配置
+
+当获取SqlSession对象时，可以指定所需的执行器类型。这种方式更加灵活，允许根据不同的操作需求选择不同的执行器。
+
+SqlSession是MyBatis中用于执行数据库操作的核心接口，它提供了多种方法来执行SQL语句和映射操作。
+
+通过SqlSessionFactory获取SqlSession对象时，可以配置执行器的类型。
+
+使用SqlSessionFactory的openSession(ExecutorType)方法来获取指定类型的SqlSession。ExecutorType是一个枚举类型，包含了MyBatis支持的三种执行器：SIMPLE、REUSE和BATCH。
+
+```java
+import org.apache.ibatis.session.ExecutorType;  
+import org.apache.ibatis.session.SqlSession;  
+import org.apache.ibatis.session.SqlSessionFactory;  
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;  
+  
+import java.io.Reader;  
+   
+Reader reader = Resources.getResourceAsReader("mybatis-config.xml");  
+  
+// 创建SqlSessionFactory  
+SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);  
+  
+// 获取指定执行器类型的SqlSession  
+// 使用SIMPLE执行器  
+SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.SIMPLE);  
+// 或者使用REUSE执行器  
+// SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.REUSE);  
+// 或者使用BATCH执行器  
+// SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);  
+  
+try {  
+    // 使用sqlSession执行数据库操作...  
+    // ...  
+} finally {  
+    // 关闭SqlSession  
+    sqlSession.close();  
+}
+```
+
+（3）xml中标签内设置
+
+可以通过在映射文件中配置、和标签来定义相应的执行器，在这些标签中可以针对具体的SQL语句配置执行器类型。
+```shell
+<select id="selectBlog" parameterType="int" resultType="Blog"  statementType="PREPARED" useCache="true" flushCache="true"> 
+SELECT * FROM BLOG WHERE ID = #{id}
+</select> 
+```
+在上面的示例中，可以看到标签指定了该查询的执行器类型为“PREPARED”，也就是预处理执行器。 
+
+### 25、BatchExecutor 如何提高性能？
+
+BatchExecutor 通过批处理的方式提高性能。它允许在 JDBC 客户端缓存多条 SQL 语句，然后在缓存满或手动刷新时，将这些语句打包一起发送到数据库执行。这种方式可以有效减少网络通信次数和数据库交互的开销，从而提高系统性能。 
+
+1. 网络通信次数：通过一次发送多条 SQL 语句，减少了与数据库服务器之间的往返次数，从而减少了网络延迟的影响。 
+2. 数据库交互开销：数据库在处理批量请求时，可以优化执行计划，减少编译和准备时间，进一步提高执行效率。 
+
+### 26、mybatis如何防止sql注入 
+
+（1）使用参数化的SQL语句 在编写SQL语句时，应使用参数化的方式来构建SQL，而不是将用户输入的值直接拼接到SQL字符串中。这样可以确保用户输入的内容不会被解释为SQL命令。#{}占位符会自动对输入值进行转义，可以有效防止SQL注入攻击。
+
+```sql
+<select id="getUser" parameterType="string" resultType="User">
+ SELECT * FROM users WHERE username = #{username}
+</select>
+```
+（2）使用MyBatis的动态SQL MyBatis的动态SQL允许根据条件动态拼接SQL语句，可以在拼接SQL的过程中对用户输入的内容进行转义或其他处理，从而防止SQL注入攻击。 
+
+```sql
+<select id="getUsers" parameterType="map" resultType="User"> 
+ SELECT * FROM users 
+     <where>  <if test="username != null">   AND username = #{username}  
+              </if> 
+    </where>
+</select>
+```
+
+#### 27、mybatis xml映射文件中，有哪些常用标签？
+
+：定义一个映射器，用于将 SQL 语句与 Java 方法关联起来。
+：定义一个结果映射，用于描述如何将查询结果集映射到 Java 对象。
+：定义一个可重用的 SQL 片段
+。：定义一个查询语句，用于从数据库中检索数据。
+：定义一个插入语句，用于向数据库中插入数据。
+：定义一个更新语句，用于修改数据库中的数据。
+：定义一个删除语句，用于从数据库中删除数据
+。：定义一个参数映射，用于描述如何将 Java 方法的参数传递给 SQL 语句。
+：定义一个刷新语句，用于清空或重置数据库中的缓存。
+：定义一个数据库配置，用于指定数据库连接信息。
+：定义一个缓存配置，用于设置查询结果的缓存策略。
+：定义一个关联映射，用于描述两个实体类之间的关联关系。
+：定义一个集合映射，用于描述一对多或多对多的关联关系。
+：定义一个鉴别器映射，用于处理继承关系中的类型判断。
+：定义一个子查询映射，用于在查询语句中使用子查询。
+：定义一个构造函数映射，用于在查询结果中使用构造函数创建对象。
+：定义一个修剪表达式，用于在动态 SQL 中控制 SQL 语句的生成。
+：定义一个条件表达式，用于在动态 SQL 中生成 WHERE 子句。
+：定义一个更新表达式，用于在动态 SQL 中生成 SET 子句。
+：定义一个循环表达式，用于在动态 SQL 中处理集合类型的参数。
+
+#### SQL 操作标签
+
+| 标签名         | 属性                                                         | 说明         | 示例                                                         |
+| :------------- | :----------------------------------------------------------- | :----------- | :----------------------------------------------------------- |
+| **`<select>`** | `id`：唯一标识 `parameterType`：参数类型 `resultType`：结果类型 `resultMap`：结果映射ID `flushCache`：是否清空缓存 `useCache`：是否使用缓存 `timeout`：超时时间 `fetchSize`：获取记录数 `statementType`：语句类型 `resultSetType`：结果集类型 | 查询语句标签 | `<select id="getUser" resultType="User">SELECT * FROM users</select>` |
+| **`<insert>`** | `id`：唯一标识 `parameterType`：参数类型 `flushCache`：是否清空缓存 `useGeneratedKeys`：使用自增主键 `keyProperty`：主键属性名 `keyColumn`：主键列名 `timeout`：超时时间 | 插入语句标签 | `<insert id="insertUser" useGeneratedKeys="true" keyProperty="id">INSERT INTO users...</insert>` |
+| **`<update>`** | `id`：唯一标识 `parameterType`：参数类型 `flushCache`：是否清空缓存 `timeout`：超时时间 | 更新语句标签 | `<update id="updateUser">UPDATE users SET...</update>`       |
+| **`<delete>`** | `id`：唯一标识 `parameterType`：参数类型 `flushCache`：是否清空缓存 `timeout`：超时时间 | 删除语句标签 | `<delete id="deleteUser">DELETE FROM users...</delete>`      |
+
+#### 结果映射标签
+
+| 标签名                | 属性                                                         | 说明                 | 示例                                                         |
+| :-------------------- | :----------------------------------------------------------- | :------------------- | :----------------------------------------------------------- |
+| **`<resultMap>`**     | `id`：唯一标识 `type`：映射的Java类型 `extends`：继承的resultMap `autoMapping`：是否自动映射 | 定义结果映射         | `<resultMap id="userMap" type="User">...</resultMap>`        |
+| **`<id>`**            | `property`：Java属性名 `column`：数据库列名 `javaType`：Java类型 `jdbcType`：JDBC类型 | 主键字段映射         | `<id property="id" column="user_id"/>`                       |
+| **`<result>`**        | `property`：Java属性名 `column`：数据库列名 `javaType`：Java类型 `jdbcType`：JDBC类型 | 普通字段映射         | `<result property="name" column="user_name"/>`               |
+| **`<constructor>`**   | 无属性，容器标签                                             | 构造函数映射         | `<constructor><idArg column="id" javaType="int"/></constructor>` |
+| **`<idArg>`**         | `column`：列名 `javaType`：Java类型 `jdbcType`：JDBC类型 `name`：参数名 | 构造函数主键参数     | `<idArg column="id" javaType="int"/>`                        |
+| **`<arg>`**           | `column`：列名 `javaType`：Java类型 `jdbcType`：JDBC类型 `name`：参数名 | 构造函数普通参数     | `<arg column="name" javaType="String"/>`                     |
+| **`<association>`**   | `property`：Java属性名 `javaType`：Java类型 `resultMap`：引用resultMap `columnPrefix`：列名前缀 | 一对一关联映射       | `<association property="dept" javaType="Department">...</association>` |
+| **`<collection>`**    | `property`：Java属性名 `ofType`：集合元素类型 `resultMap`：引用resultMap `columnPrefix`：列名前缀 | 一对多关联映射       | `<collection property="list" ofType="Order">...</collection>` |
+| **`<discriminator>`** | `javaType`：列值类型 `column`：鉴别列名                      | 鉴别器（继承映射）   | `<discriminator javaType="int" column="type">...</discriminator>` |
+| **`<case>`**          | `value`：列值 `resultMap`：映射的resultMap                   | 鉴别器分支           | `<case value="1" resultMap="adminMap"/>`                     |
+| **`<parameterMap>`**  | `id`：唯一标识 `type`：参数类型                              | **已废弃**：参数映射 | `<parameterMap id="paramMap" type="User">...</parameterMap>` |
+| **`<parameter>`**     | `property`：属性名 `jdbcType`：JDBC类型                      | **已废弃**：参数定义 | `<parameter property="id" jdbcType="INTEGER"/>`              |
+
+#### 动态 SQL 标签
+
+| 标签名            | 属性                                                         | 说明                          | 示例                                                         |
+| :---------------- | :----------------------------------------------------------- | :---------------------------- | :----------------------------------------------------------- |
+| **`<if>`**        | `test`：OGNL表达式                                           | 条件判断                      | `<if test="name != null">AND name = #{name}</if>`            |
+| **`<choose>`**    | 无属性，容器标签                                             | 多条件选择（类似switch）      | `<choose><when>...</when><otherwise>...</otherwise></choose>` |
+| **`<when>`**      | `test`：OGNL表达式                                           | choose的分支条件              | `<when test="name != null">AND name = #{name}</when>`        |
+| **`<otherwise>`** | 无属性                                                       | choose的默认分支              | `<otherwise>AND status=1</otherwise>`                        |
+| **`<where>`**     | 无属性                                                       | 智能WHERE子句，自动处理AND/OR | `<where><if>...</if></where>`                                |
+| **`<set>`**       | 无属性                                                       | 智能SET子句，自动处理逗号     | `<set><if>...</if></set>`                                    |
+| **`<trim>`**      | `prefix`：添加前缀 `suffix`：添加后缀 `prefixOverrides`：去除前缀 `suffixOverrides`：去除后缀 | 自定义修剪标签                | `<trim prefix="WHERE" prefixOverrides="AND">...</trim>`      |
+| **`<foreach>`**   | `collection`：集合属性名 `item`：迭代项名 `index`：迭代索引名 `open`：开始字符串 `close`：结束字符串 `separator`：分隔符 | 循环遍历                      | `<foreach collection="list" item="item">#{item}</foreach>`   |
+| **`<bind>`**      | `name`：变量名 `value`：OGNL表达式值                         | 创建变量                      | `<bind name="pattern" value="'%'+name+'%'"/>`                |
+
+#### SQL 片段标签
+
+| 标签名          | 属性                  | 说明              | 示例                                  |
+| :-------------- | :-------------------- | :---------------- | :------------------------------------ |
+| **`<sql>`**     | `id`：唯一标识        | 定义可重用SQL片段 | `<sql id="baseColumns">id,name</sql>` |
+| **`<include>`** | `refid`：引用的sql ID | 引用SQL片段       | `<include refid="baseColumns"/>`      |
+
+#### 缓存标签
+
+| 标签名            | 属性                                                         | 说明                 | 示例                                              |
+| :---------------- | :----------------------------------------------------------- | :------------------- | :------------------------------------------------ |
+| **`<cache>`**     | `eviction`：淘汰策略（LRU|FIFO|SOFT|WEAK） `flushInterval`：刷新间隔(ms) `size`：缓存对象数 `readOnly`：是否只读 `blocking`：是否阻塞 `type`：自定义缓存类 | 配置二级缓存         | `<cache eviction="LRU" size="1024"/>`             |
+| **`<cache-ref>`** | `namespace`：命名空间                                        | 引用其他Mapper的缓存 | `<cache-ref namespace="com.example.UserMapper"/>` |
+
+**按照功能对标签分类:**
+
+| 类别             | 包含标签                                                     | 主要用途                       |
+| :--------------- | :----------------------------------------------------------- | :----------------------------- |
+| **SQL执行标签**  | `<select>`, `<insert>`, `<update>`, `<delete>`               | 定义CRUD操作                   |
+| **结果映射标签** | `<resultMap>`, `<id>`, `<result>`, `<association>`, `<collection>`, `<constructor>`, `<discriminator>`, `<case>` | 定义Java对象与数据库的映射关系 |
+| **动态SQL标签**  | `<if>`, `<choose>`, `<when>`, `<otherwise>`, `<where>`, `<set>`, `<trim>`, `<foreach>`, `<bind>` | 构建动态SQL语句                |
+| **片段重用标签** | `<sql>`, `<include>`                                         | SQL代码复用                    |
+| **缓存配置标签** | `<cache>`, `<cache-ref>`                                     | 二级缓存配置                   |
+| **参数映射标签** | `<parameterMap>`, `<parameter>`                              | **已废弃**：参数映射定义       |
+
+
+#### **小结**
+
+1. **标签嵌套规则**：
+    - `<resultMap>` 内可包含 `<id>`, `<result>`, `<association>`, `<collection>`, `<constructor>`, `<discriminator>`
+    - `<constructor>` 内可包含 `<idArg>`, `<arg>`
+    - `<discriminator>` 内可包含 `<case>`
+    - `<choose>` 内必须包含至少一个 `<when>`，可包含一个 `<otherwise>`
+2. **属性优先级**：
+    - `resultMap` 优先级高于 `resultType`
+    - 显式映射优先级高于自动映射
+3. **缓存相关**：
+    - 一级缓存默认开启（SqlSession级别）
+    - 二级缓存需要显式配置 `<cache>` 标签
+4. **废弃标签**：
+    - `<parameterMap>` 和 `<parameter>` 已废弃，建议使用 `@Param` 注解
+5. **动态SQL最佳实践**：
+    - 优先使用 `<where>` 和 `<set>`，而非手动拼接
+    - `<foreach>` 遍历时注意参数类型
+    - `<bind>` 可用于解决数据库兼容性问题
+
+
+### **28、Mybatis 动态 sql 有什么用？执行原理？有哪些动态 sql？**
+
+动态 SQL 的主要作用在于，根据运行时不同的条件，动态地生成不同的 SQL 语句，从而实现更灵活、更高效的数据库操作。
+
+常见的动态 SQL 标签：
+
+- choose:只会在至少有一个子元素的条件返回 SQL 子句的情况下才去插入“WHERE”子句。而且，若子句的开头是“AND”或“OR”，元素也会将它们去除。
+- if:用于判断条件，如果满足条件，则包含其中的 SQL 片段。
+- when:类似于 Java 中的 switch-case-default 结构，用于多条件判断。
+- trim:可以自定义前缀和后缀的去除规则。
+- set:用于处理 SQL 语句中的 SET 子句，智能地处理逗号。
+- foreach:用于遍历集合，根据集合元素生成相应的 SQL 片段。
+
+这些动态 SQL 标签大大增强了 MyBatis 的灵活性，使得开发者能够根据不同的业务逻辑，动态地构建 SQL 语句，从而提高了开发效率和代码的可维护性。
+
+### **29、Mybatis 的 Xml 映射文件中，不同的 Xml 映射文件，id 是否可以重复？**
+
+在 MyBatis 的 XML 映射文件中，不同的 XML 映射文件之间的 ID 是可以重复的。因为每个 XML 映射文件都是独立的，它们之间不会相互影响。但是在同一张 XML 映射文件中，每个元素中的 ID 必须是唯一的，不能重复。
+
+### **30、MyBatis的接口绑定是如何工作的？**
+
+当 MyBatis 接收到 Java 接口方法的调用时，它会首先查找是否有与该方法相关的 SQL 映射语句。如果有，MyBatis 会解析该 SQL 语句，并根据传入的参数值动态地生成最终的 SQL 语句。然后，MyBatis 会执行这个 SQL 语句，并将查询结果映射回 Java 对象，最后返回给调用者。
+
+在接口绑定中，MyBatis 提供了两种实现方式：
+
+（1）使用元素
+
+在 MyBatis 的全局配置文件（如 mybatis-config.xml）中，通过元素引入 SQL 映射文件，将映射文件与 Java 接口关联起来。
+
+（2）使用注解
+
+在 Java 接口方法上添加 @Select、@Insert、@Update、@Delete 等注解，直接编写 SQL 语句。
+
+```java
+public interface UserMapper {
+    @Select("SELECT * FROM user WHERE id = #{id}")
+    User getUserById(int id);
+}
+```
+
+### **31、MyBatis如何处理参数映射？**
+
+（1）单个参数
+
+当 SQL 语句中只有一个参数时，MyBatis 无需指定参数的类型或名称，直接使用 #{} 来引用参数。MyBatis 会自动将这个参数绑定到 SQL 语句中。
+
+（2）多个参数
+
+ 1)使用顺序：MyBatis 会按照参数的顺序进行绑定，可以使用 #{param1}、#{param2} 等来引用参数。
+
+```sql
+<select id="selectUserByUsernameAndPassword" resultType="User">  
+  SELECT * FROM user WHERE username = #{param1} AND password = #{param2}  
+</select>
+```
+
+ 2)使用 @Param 注解：在 Mapper 接口的方法参数上添加 @Param 注解，为参数指定一个名称，然后在 XML 中使用这个名称来引用参数。
+
+```java
+User selectUserByUsernameAndPassword(@Param("username") String username, @Param("password") String password);
+<select id="selectUserByCriteria" resultType="User">  
+  SELECT * FROM user WHERE username = #{username} AND age = #{age}  
+</select>
+```
+
+ 3)使用 Map 或 JavaBean：将多个参数封装到一个 Map 或 JavaBean 中，然后在 XML 中引用 Map 的 key 或 JavaBean 的属性。
+
+```sql
+User selectUserByCriteria(Map<String, Object> criteria);
+<select id="selectUserByCriteria" resultType="User">  
+  SELECT * FROM user WHERE username = #{username} AND age = #{age}  
+</select>
+```
+
+（3）复杂类型
+
+对于复杂类型（如 JavaBean 或自定义类型），MyBatis 会自动映射这些类型的属性到 SQL 语句中。只需要在 XML 中使用 #{} 引用这些属性的名称即可。
+
+```java
+public class UserCriteria {  
+  private String username;  
+  private int age;  
+  // getters and setters  
+}
+<select id="selectUserByCriteria" resultType="User">  
+  SELECT * FROM user WHERE username = #{username} AND age = #{age}  
+</select>
+```
+
+（4）使用 @Results 和 @Result 注解
+
+对于结果集的映射，MyBatis 提供了 @Results 和 @Result 注解，用于在接口方法上直接定义结果集的映射关系，而无需编写 XML 映射文件。这些注解可以指定如何将数据库中的列映射到 Java 对象的属性上。
+
+### **32、项目中是如何实现权限验证的，权限验证需要几张表？**
+
+Spring Security 是实现权限验证的常用框架，通常需要三张表来实现基本的权限验证。
+
+Spring Security提供了一套全面的安全服务，包括身份认证、权限授权等功能。在实现权限验证时，通常会使用到该框架提供的多种机制和扩展点。例如，通过实现UserDetailsService接口并覆写里面的用户认证方法，可以自定义用户的认证逻辑。此外，权限管理过程包括鉴权管理和授权管理，即判断用户是否有权访问某个资源以及如何将权限分配给用户。
+
+对于权限验证所需的表结构，RBAC（Role-Based Access Control，基于角色的访问控制）模型是一个常见的设计模式。在这个模型中，通常至少需要三张表：用户表、角色表、权限表。用户表存储用户信息，角色表定义了不同的角色，而权限表则规定了不同角色可以执行的操作。除此之外，还需要两张关系表来维护用户和角色之间、角色和权限之间的关系。这些表共同构成了权限验证的基础数据结构。
+
+在设计和实施权限验证系统时，开发者需要根据实际业务需求和技术选型来决定具体的实现方式和所需表结构。
+
+### **33、说说你对RBAC的理解？**
+
+RBAC 的核心思想是将权限赋予角色，然后将角色赋予用户。这种分离让系统管理员能够更容易地管理和控制资源的访问权限。通过 RBAC，可以对用户的权限进行集中管理，确保授权的一致性。 RBAC 主要包括三种基本权利：用户、角色和权限。当用户和角色是多对多的关系，当用户角色变更时只需要对关系进行更改即可，简化了权限管理工作。RBAC 通过模块化的方式进行权限管理，可以减少权限管理的复杂性，提高系统的安全性。
+
+这是RBAC的基础模型。在RBAC0中，角色是权限的集合，用户则被分配到这些角色中。用户通过其角色获得访问资源的权限。RBAC0模型主要关注用户、角色和权限之间的基本关系。
+
+RBAC1在RBAC0的基础上增加了角色继承的概念。在RBAC1中，角色可以继承其他角色的权限，形成一个角色层次结构。这种继承关系使得权限的管理更加灵活和方便，可以满足更复杂的权限控制需求。
+
+RBAC2是RBAC的扩展模型，引入了约束的概念。这些约束可以是静态的，也可以是动态的，用于限制角色、权限和用户之间的关联关系。例如，可以设置约束来防止某个角色被赋予过多的权限，或者限制某个用户只能被分配到特定的角色中。
+
+RBAC3结合了RBAC1和RBAC2的特性，既支持角色继承，又允许定义约束来限制权限的分配和使用。这使得RBAC3成为一个功能全面且高度可配置的权限管理模型。
+
+### **34、rbac的实现理论分析**
+
+在实现RBAC（基于角色的访问控制）时，需要考虑以下因素：
+
+1. **角色定义**：定义系统中所有角色和这些角色可以执行的权限或操作。
+2. **权限管理**：对系统中需要进行控制的所有资源和操作进行明确定义，并分配相应的权限。
+3. **用户-角色分配**：确定系统中的用户与角色之间的关联关系，即哪些用户属于哪些角色。
+4. **角色-权限分配**：明确每个角色所具有的权限。这个关系是角色拥有哪些权限的映射。
+5. **角色层级关系**（如果需要）：在某些情况下，需要为角色定义父子关系以实现角色的继承和权限的继承。
+6. **安全策略实施**：制定并实施适当的安全策略，包括访问控制列表、访问策略、密码策略等。
+7. **审计和监控**：监控系统对权限的使用情况，进行审计和日志记录，以及定期的安全审查和漏洞分析。
+8. **用户界面及管理工具**：提供用户管理界面和权限管理界面，以便管理员和用户能够方便地管理和使用RBAC系统。
+9. **用户认证和会话管理**：RBAC系统通常需要与用户认证和会话管理系统集成，以确保合法用户可以正常访问系统资源。
+10. **数据库设计**：RBAC系统的实现通常涉及数据库设计，包括用户、角色、权限信息的存储和管理。
+11. **系统优化和性能**：为支持RBAC系统的高效运行，可能需要对系统进行特定的优化，确保系统可以快速、安全地进行权限验证和验证。
