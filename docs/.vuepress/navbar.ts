@@ -73,7 +73,7 @@ export const navbar = defineNavbarConfig([
                     {
                         icon: 'skill-icons:docker',
                         text: 'Docker容器技术',
-                        link: '/learning-notes/virtualization/k8s/',
+                        link: '/learning-notes/virtualization/docker/',
                         badge: 'DOCKER'
                     },
                 ]
@@ -105,23 +105,23 @@ export const navbar = defineNavbarConfig([
                 items: [
                     {
                         icon: 'devicon:spring',
+                        text: 'SpringBoot 框架',
+                        link: '/learning-notes/backend/springboot/'
+                    },
+                    {
+                        icon: 'logos:typeorm',
+                        text: 'Mybatis 框架',
+                        link: '/learning-notes/backend/mybatis/',
+                    },
+                    {
+                        icon: 'devicon:spring-wordmark',
                         text: 'Spring 框架',
-                        link: 'https://spring.io/'
+                        link: '/learning-notes/backend/spring/',
                     },
                     {
-                        icon: 'vscode-icons:file-type-django',
-                        text: 'Django 框架',
-                        link: 'https://www.djangoproject.com/',
-                    },
-                    {
-                        icon: 'devicon:flask',
-                        text: 'Flask 框架',
-                        link: 'https://flask.palletsprojects.com/zh-cn/stable/',
-                    },
-                    {
-                        icon: 'catppuccin:devcontainer',
-                        text: '后端技术笔记',
-                        link: '/learning-notes/backend/',
+                        icon: 'streamline-ultimate:java',
+                        text: 'Java 核心特性',
+                        link: '/learning-notes/backend/java/',
                     },
                 ]
             },

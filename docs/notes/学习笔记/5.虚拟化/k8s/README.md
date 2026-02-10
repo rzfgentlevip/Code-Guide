@@ -1,22 +1,12 @@
 ---
-title: K8S
+title: K8S 技术文档
 createTime: 2025/02/24 07:43:40
 permalink: /learning-notes/virtualization/k8s/
 icon: skill-icons:kubernetes
 ---
 
-机器人操作系统（ROS）是一套软件库和工具，帮助你构建机器人应用。从驱动程序到先进算法，以及强大的开发者工具，ROS 提供了实现下一个机器人项目所需的一切。而且它是开源的。完整项目详情请见：https://ROS.org
+## K8s相关资源
 
-## ROS2的核心库与文档
+<LinkCard icon="devicon:kubernetes" href="https://kubernetes.io/zh-cn/docs/home/" title="kubernetes" description="Kubernetes 是一个开源的容器编排引擎，用来对容器化应用进行自动化部署、扩缩和管理。此开源项目由云原生计算基金会（CNCF）托管。"></LinkCard>
 
-<CardGrid>
-<RepoCard repo="ros2/ros2"></RepoCard>
-<RepoCard repo="ros2/ros2_documentation"></RepoCard>
-<RepoCard repo="ros2/rclcpp"></RepoCard>
-</CardGrid>
-
-## 相关链接
-
-- [ROS2](https://ros.org)
-- [古月居](https://guyuehome.com)
-- [中智讯](https://zonesion.com.cn)
+<LinkCard icon="material-icon-theme:helm" href="https://helm.sh/zh/docs/" title="Helm" description="Helm 是一款用于 Kubernetes 的软件包管理器，内含将应用部署到集群所需的各种代码和资源。"></LinkCard>
