@@ -1,139 +1,15 @@
 ---
-title: Mysql手册(提高)
-icon: skill-icons:mysql-dark
-order: 2
+title: 3、Mysql核心
+icon: devicon:mysql
+order: 3
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
-category:
-  - 面试
-  - MYSQL
-tag:
-  - 面试
-  - mysql
-sticky: false
-star: true
-footer: 分布式
 copyright: bugcode
 createTime: 2026/01/17 13:20:24
-permalink: /compre-guide/database/mysql提高/
+permalink: /compre-guide/database/mysql核心/
 ---
 
-<!-- TOC -->
-- [Mysql手册(提高)](#mysql手册提高)
-  - [索引(重点)](#索引重点)
-    - [什么是索引](#什么是索引)
-    - [创建索引](#创建索引)
-    - [索引的优缺点](#索引的优缺点)
-    - [索引分类](#索引分类)
-      - [从数据结构角度](#从数据结构角度)
-      - [从物理存储角度](#从物理存储角度)
-      - [从逻辑角度](#从逻辑角度)
-  - [什么是聚簇索引,什么是非聚簇索引？](#什么是聚簇索引什么是非聚簇索引)
-    - [聚集索引的优点](#聚集索引的优点)
-    - [聚集索引的缺点](#聚集索引的缺点)
-    - [非聚集索引的优点](#非聚集索引的优点)
-    - [非聚集索引的缺点](#非聚集索引的缺点)
-  - [Mysql索引](#mysql索引)
-    - [B+Tree索引](#btree索引)
-      - [B-Tree](#b-tree)
-      - [B+Tree](#btree)
-    - [MyISAM主键索引与辅助索引的结构](#myisam主键索引与辅助索引的结构)
-    - [InnoDB主键索引与辅助索引的结构](#innodb主键索引与辅助索引的结构)
-      - [主键索引](#主键索引)
-      - [辅助(非主键)索引](#辅助非主键索引)
-      - [InnoDB 索引结构需要注意的点](#innodb-索引结构需要注意的点)
-      - [为什么推荐使用整型自增主键而不是选择UUID](#为什么推荐使用整型自增主键而不是选择uuid)
-      - [为什么非主键索引结构叶子节点存储的是主键值](#为什么非主键索引结构叶子节点存储的是主键值)
-    - [Hash索引](#hash索引)
-    - [full-text全文索引](#full-text全文索引)
-    - [R-Tree空间索引](#r-tree空间索引)
-    - [为什么Mysql索引要用B+树不是B树？](#为什么mysql索引要用b树不是b树)
-    - [为何不采用Hash方式？](#为何不采用hash方式)
-  - [MySQL覆盖索引](#mysql覆盖索引)
-  - [索引的数据结构](#索引的数据结构)
-    - [B+树索引](#b树索引)
-    - [哈希索引](#哈希索引)
-    - [Hash索引和B+树的区别？](#hash索引和b树的区别)
-    - [B树和B+树的区别？](#b树和b树的区别)
-  - [数据库为什么使用B+树而不是B树？](#数据库为什么使用b树而不是b树)
-  - [为何不采用Hash方式？](#为何不采用hash方式-1)
-  - [非聚簇索引一定会进行回表查询吗？](#非聚簇索引一定会进行回表查询吗)
-  - [介绍一下覆盖索引](#介绍一下覆盖索引)
-  - [数据库事务](#数据库事务)
-    - [什么是数据库事务？](#什么是数据库事务)
-    - [事务的四大特性是什么？(ACID特性)](#事务的四大特性是什么acid特性)
-    - [数并发事务带来哪些问题?](#数并发事务带来哪些问题)
-    - [数据库的隔离级别有哪些？](#数据库的隔离级别有哪些)
-    - [数据库的事务是如何实现的？](#数据库的事务是如何实现的)
-    - [隔离级别是如何实现的？](#隔离级别是如何实现的)
-  - [什么是MVCC](#什么是mvcc)
-    - [事务版本号](#事务版本号)
-    - [隐士字段](#隐士字段)
-    - [undo log](#undo-log)
-    - [版本链](#版本链)
-    - [Read View](#read-view)
-    - [mvcc实现原理分析](#mvcc实现原理分析)
-      - [读已提交(RC)隔离级别,存在不可重复读问题的分析历程](#读已提交rc隔离级别存在不可重复读问题的分析历程)
-      - [可重复读(RR)隔离级别,解决不可重复读问题的分析](#可重复读rr隔离级别解决不可重复读问题的分析)
-  - [数据库锁](#数据库锁)
-    - [什么是数据库锁](#什么是数据库锁)
-    - [锁的分类](#锁的分类)
-      - [从对数据操作的类型分类](#从对数据操作的类型分类)
-      - [**从对数据操作的粒度分类**:](#从对数据操作的粒度分类)
-    - [MyISAM 表锁](#myisam-表锁)
-    - [InnoDB 行锁](#innodb-行锁)
-    - [如何理解锁](#如何理解锁)
-    - [加锁机制](#加锁机制)
-    - [锁模式(InnoDB有三种行锁的算法)](#锁模式innodb有三种行锁的算法)
-      - [记录锁](#记录锁)
-      - [间隙锁](#间隙锁)
-      - [临建锁](#临建锁)
-    - [记录锁](#记录锁-1)
-    - [间隙锁](#间隙锁-1)
-    - [唯一索引的间隙锁](#唯一索引的间隙锁)
-    - [普通索引的间隙锁](#普通索引的间隙锁)
-        - [**临键锁(Next-key Locks)**](#临键锁next-key-locks)
-        - [小结](#小结)
-  - [死锁](#死锁)
-    - [死锁产生](#死锁产生)
-    - [MyISAM避免死锁](#myisam避免死锁)
-    - [InnoDB避免死锁](#innodb避免死锁)
-    - [数据库锁与隔离级别的关系](#数据库锁与隔离级别的关系)
-    - [数据库锁类型有哪些？](#数据库锁类型有哪些)
-    - [什么是数据库的乐观锁和悲观锁,如何实现？](#什么是数据库的乐观锁和悲观锁如何实现)
-    - [什么是死锁？如何避免？](#什么是死锁如何避免)
-  - [Mysql调优](#mysql调优)
-    - [MySQL常见性能分析手段](#mysql常见性能分析手段)
-    - [性能瓶颈定位](#性能瓶颈定位)
-    - [Explain(执行计划)](#explain执行计划)
-    - [慢查询日志](#慢查询日志)
-    - [Show Profile 分析查询](#show-profile-分析查询)
-    - [性能优化](#性能优化)
-      - [索引优化](#索引优化)
-      - [查询优化](#查询优化)
-      - [数据类型优化](#数据类型优化)
-    - [分区,分库分表](#分区分库分表)
-      - [Mysql分区](#mysql分区)
-      - [MySQL分表](#mysql分表)
-      - [MySQL分库](#mysql分库)
-    - [主从复制](#主从复制)
-      - [复制的基本原理](#复制的基本原理)
-      - [复制的基本原则](#复制的基本原则)
-      - [复制的最大问题](#复制的最大问题)
-    - [百万级别或以上的数据如何删除](#百万级别或以上的数据如何删除)
-    - [数据库优化](#数据库优化)
-      - [大表如何优化？](#大表如何优化)
-      - [什么是垂直分表、垂直分库、水平分表、水平分库？](#什么是垂直分表垂直分库水平分表水平分库)
-      - [分库分表后,ID键如何处理？](#分库分表后id键如何处理)
-      - [MySQL的复制原理及流程？如何实现主从复制？](#mysql的复制原理及流程如何实现主从复制)
-      - [了解读写分离吗？](#了解读写分离吗)
-
-<!-- /TOC -->
-
-
-# Mysql手册(提高)
-
-## 索引(重点)
+## 1、索引(重点)
 
 > 说说你对 MySQL 索引的理解？
 >
@@ -155,7 +31,7 @@ permalink: /compre-guide/database/mysql提高/
 
 下图是一种可能的索引方式示例。
 
-![1640656571077](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/095612-18437.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/095612-18437.png)
 
 左边的数据表,一共有两列七条记录,最左边的是数据记录的物理地址
 
@@ -256,20 +132,47 @@ permalink: /compre-guide/database/mysql提高/
 - **前缀索引(Prefix)** :前缀索引只适用于字符串类型的数据。前缀索引是对文本的前几个字符创建索引,相比普通索引建立的数据更小,因为只取前几个字符。
 - **全文索引(Full Text)** :全文索引主要是为了检索大文本数据中的关键字的信息,是目前搜索引擎数据库使用的一种技术。Mysql5.6 之前只有 MYISAM 引擎支持全文索引,5.6 之后 InnoDB 也支持了全文索引。
 
-> 为什么MySQL 索引中用B+tree,不用B-tree 或者其他树,为什么不用 Hash 索引
+> 1、为什么MySQL 索引中用B+tree,不用B-tree 或者其他树,为什么不用 Hash 索引
 >
-> 聚簇索引/非聚簇索引,MySQL 索引底层实现,叶子结点存放的是数据还是指向数据的内存地址,使用索引需要注意的几个地方？
+> 2、聚簇索引/非聚簇索引是什么?
+> 
+> 3、MySQL 索引底层实现,叶子结点存放的是数据还是指向数据的内存地址,使用索引需要注意的几个地方？
 >
-> 使用索引查询一定能提高查询的性能吗？为什么?
+> 4、使用索引查询一定能提高查询的性能吗？为什么?
 
 
 
-## 什么是聚簇索引,什么是非聚簇索引？
+## 2、什么是聚簇索引,什么是非聚簇索引？
 
 聚簇索引和非聚簇索引最主要的区别是**数据和索引是否分开存储**。
 
-- 聚簇索引:将数据和索引放到一起存储,索引结构的叶子节点保留了数据行。
+- 聚簇索引:将数据和索引放到一起存储,索引结构的叶子节点保留了数据行，索引即数据，数据即索引；
 - 非聚簇索引:将数据进和索引分开存储,索引叶子节点存储的是指向数据行的地址。
+
+```mermaid
+graph TB
+    subgraph Clustered [聚集索引 InnoDB]
+        direction TB
+        C1[索引结构] --> C2[B+树]
+        C2 --> C3[叶子节点<br/>= 整行数据]
+        C2 --> C4[非叶子节点<br/>= 索引键值]
+        C5[数据存储] --> C6[数据与索引<br/>物理排序一致]
+        C7[特点] --> C8[每表只能一个<br/>主键默认聚集]
+        
+        style C3 fill:#99ff99,stroke:#333
+    end
+
+    subgraph NonClustered [非聚集索引 MyISAM/InnoDB]
+        direction TB
+        N1[索引结构] --> N2[B+树]
+        N2 --> N3[叶子节点<br/>= 索引键 + 指针]
+        N2 --> N4[非叶子节点<br/>= 索引键值]
+        N5[数据存储] --> N6[索引与数据分离]
+        N7[特点] --> N8[每表可多个<br/>需要回表查询]
+        
+        style N3 fill:#ff9999,stroke:#333
+    end
+```
 
 在InnoDB存储引擎中,默认的索引为B+树索引,利用主键创建的索引为主索引,也是聚簇索引,在主索引之上创建的索引为辅助索引,也是非聚簇索引。为什么说辅助索引是在主索引之上创建的呢,因为辅助索引中的叶子节点存储的是主键。
 
@@ -277,24 +180,96 @@ permalink: /compre-guide/database/mysql提高/
 
 > 在MyISAM引擎中,不管使用的是主键索引,还是非主键索引,那么叶子节点中存储的都是数据的偏移量,所以根据这个偏移量,可以直接取查找数据,但是在Innodb中,如果使用的是非主键索引,那么还需要定位主键索引才能够找到数据。
 
-![1631756839489](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094730-925250.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094730-925250.png)
 
-![1631756868658](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094750-68141.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094750-68141.png)
 
-### 聚集索引的优点
 
+### 物理存储结构对比
+
+#### 聚集索引（InnoDB主键索引）
+
+```mermaid
+graph TD
+    subgraph Clustered_Storage [聚集索引物理结构]
+        direction TB
+        
+        Root[根节点<br/>页号: 3] --> NonLeaf1[非叶子节点<br/>页号: 45<br/>键值范围: 1-500]
+        Root --> NonLeaf2[非叶子节点<br/>页号: 78<br/>键值范围: 501-1000]
+        
+        NonLeaf1 --> Leaf1[叶子节点<br/>页号: 120<br/>数据页]
+        NonLeaf1 --> Leaf2[叶子节点<br/>页号: 121<br/>数据页]
+        
+        Leaf1 --> Row1[行数据 id=1<br/>name='Tom'<br/>age=25]
+        Leaf1 --> Row2[行数据 id=2<br/>name='Jerry'<br/>age=28]
+        
+        Leaf2 --> Row3[行数据 id=3<br/>name='Alice'<br/>age=22]
+        Leaf2 --> Row4[行数据 id=4<br/>name='Bob'<br/>age=30]
+        
+        style Leaf1 fill:#99ff99,stroke:#333
+        style Leaf2 fill:#99ff99,stroke:#333
+        style Row1 fill:#99ff99
+        style Row2 fill:#99ff99
+        style Row3 fill:#99ff99
+        style Row4 fill:#99ff99
+    end
+```
+
+物理文件：InnoDB表对应两个文件
+- .frm：表结构定义 
+- .ibd：数据和索引（聚集索引和数据一起存储）
+
+#### 非聚集索引（MyISAM索引）
+
+```mermaid
+graph TD
+    subgraph MyISAM_Storage [MyISAM非聚集索引]
+        direction TB
+        
+        subgraph Index_File [索引文件 .MYI]
+            Root2[根节点] --> Branch1[分支节点]
+            Root2 --> Branch2[分支节点]
+            
+            Branch1 --> LeafI1[叶子节点<br/>索引键: 'Alice'<br/>指针: 0x7F48]
+            Branch1 --> LeafI2[叶子节点<br/>索引键: 'Bob'<br/>指针: 0x7F88]
+            
+            LeafI1 --> Pointer1[行指针]
+            LeafI2 --> Pointer2[行指针]
+        end
+        
+        subgraph Data_File [数据文件 .MYD]
+            Data1[行数据 id=3<br/>'Alice',22<br/>地址: 0x7F48]
+            Data2[行数据 id=4<br/>'Bob',30<br/>地址: 0x7F88]
+            Data3[行数据 id=1<br/>'Tom',25<br/>地址: 0x7F00]
+        end
+        
+        Pointer1 -.-> Data1
+        Pointer2 -.-> Data2
+    end
+```
+
+物理文件：MyISAM表对应三个文件
+- .frm：表结构定义 
+- .MYD：数据文件 
+- .MYI：索引文件
+
+### 聚集索引优缺点
+
+**优点**
 聚集索引的查询速度非常的快,因为整个 B+树本身就是一颗多叉平衡树,叶子节点也都是有序的,定位到索引的节点,就相当于定位到了数据。
 
-### 聚集索引的缺点
+**缺点**
 
 1. **依赖于有序的数据** :因为 B+树是多路平衡树,如果索引的数据不是有序的,那么就需要在插入时排序,如果数据是整型还好,否则类似于字符串或 UUID 这种又长又难比较的数据,插入或查找的速度肯定比较慢。
 2. **更新代价大** : 如果对索引列的数据被修改时,那么对应的索引也将会被修改,而且况聚集索引的叶子节点还存放着数据,修改代价肯定是较大的,所以对于主键索引来说,主键一般都是不可被修改的。
 
-### 非聚集索引的优点
+### 非聚集索引优缺点
+
+**优点：**
 
 **更新代价比聚集索引要小** 。非聚集索引的更新代价就没有聚集索引那么大了,非聚集索引的叶子节点是不存放数据的
 
-### 非聚集索引的缺点
+**缺点:**
 
 1. 跟聚集索引一样,非聚集索引也依赖于有序的数据
 2. **可能会二次查询(回表)** :这应该是非聚集索引最大的缺点了。 当查到索引对应的指针或主键后,可能还需要根据指针或主键再到数据文件或表中查询。
@@ -308,7 +283,138 @@ permalink: /compre-guide/database/mysql提高/
 ![](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/20210420165326946.png)
 
 
-## Mysql索引
+### 查询过程
+
+#### 聚集索引查询
+
+```sql
+-- 查询条件使用主键
+SELECT * FROM users WHERE id = 5;
+```
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant I as 聚集索引(B+树)
+    
+    C->>I: WHERE id = 5
+    I->>I: 根节点查找 → 分支节点 → 叶子节点
+    I-->>C: 直接返回整行数据
+    Note over I: ✅ 一次索引查找<br/>无需回表
+```
+
+#### 非聚集索引查询（InnoDB二级索引）
+
+```sql
+-- 查询条件使用非索引列
+SELECT * FROM users WHERE name = 'Tom';
+```
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant SI as 二级索引(name)
+    participant CI as 聚集索引(id)
+    
+    C->>SI: WHERE name = 'Tom'
+    SI->>SI: 查找二级索引B+树
+    SI-->>C: 找到主键id=1
+    C->>CI: 根据id=1回表查询
+    CI-->>C: 返回完整行数据
+    
+    Note over C: ✅ 两次索引查找<br/>需要回表
+```
+
+#### MyISAM非聚集索引查询
+
+```sql
+-- MyISAM表
+SELECT * FROM users_myisam WHERE name = 'Tom';
+```
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant MI as MyISAM索引文件(.MYI)
+    participant MD as MyISAM数据文件(.MYD)
+    
+    C->>MI: WHERE name = 'Tom'
+    MI->>MI: 查找索引B+树
+    MI-->>C: 找到行指针
+    C->>MD: 根据指针读取数据
+    MD-->>C: 返回完整行数据
+    
+    Note over C: ✅ 索引查找 + 数据文件读取
+```
+
+#### 索引覆盖优化
+
+```sql
+-- 创建复合索引
+CREATE INDEX idx_name_age ON users(name, age);
+
+-- 查询1: 需要回表
+SELECT * FROM users WHERE name = 'Tom';
+-- 二级索引找到主键 → 回表查所有列
+
+-- 查询2: 索引覆盖
+SELECT name, age FROM users WHERE name = 'Tom';
+-- Extra: Using index
+-- ✅ 直接从二级索引返回数据，无需回表
+
+-- 查询3: 部分覆盖
+SELECT name, id FROM users WHERE name = 'Tom';
+-- id是主键，也存储在二级索引中
+-- ✅ 无需回表
+```
+
+二级索引叶子节点内容：
+- 索引列的值 
+- 主键值（用于回表）
+
+### 性能对比
+
+| 操作类型         | 聚集索引             | 非聚集索引            |
+| :--------------- | :------------------- | :-------------------- |
+| **主键等值查询** | ⚡ 极快（一次查找）   | 较快（索引+可能回表） |
+| **主键范围查询** | ⚡ 极快（数据连续）   | 较快（索引有序）      |
+| **二级索引查询** | 需要回表             | 视情况（可能回表）    |
+| **插入**         | 较慢（数据重排）     | 较快（追加数据文件）  |
+| **更新主键**     | ❌ 非常慢（移动数据） | 不允许                |
+| **更新非索引列** | 较快                 | 较快                  |
+
+### 索引组织表 vs 堆表
+
+| 特性           | InnoDB（聚集索引）   | MyISAM（堆表）         |
+| :------------- | :------------------- | :--------------------- |
+| **数据存储**   | 按主键顺序存储       | 按插入顺序存储         |
+| **主键索引**   | 聚集索引，包含整行   | 非聚集索引，指向数据行 |
+| **二级索引**   | 存储主键值           | 存储行指针             |
+| **插入性能**   | 可能触发页分裂       | 追加写入，性能好       |
+| **更新主键**   | 非常慢（需移动数据） | 不支持（主键不可变）   |
+| **碎片问题**   | 需要定期OPTIMIZE     | 需要定期OPTIMIZE       |
+| **空间利用率** | 可能有空洞           | 顺序写入，利用率高     |
+
+
+### 小结
+
+| 维度           | 聚集索引           | 非聚集索引                         |
+| :------------- | :----------------- | :--------------------------------- |
+| **数据结构**   | B+树               | B+树                               |
+| **叶子节点**   | 存储整行数据       | 存储指向数据的指针（主键或行地址） |
+| **数据有序性** | 物理有序           | 逻辑有序                           |
+| **每表数量**   | 只能1个            | 可以多个                           |
+| **查找过程**   | 一次索引查找       | 通常需要两次查找（回表）           |
+| **回表操作**   | 不需要             | 可能需要                           |
+| **索引覆盖**   | 总是覆盖           | 可实现覆盖索引                     |
+| **插入性能**   | 较慢（可能页分裂） | 较快（追加）                       |
+| **主键更新**   | 非常慢             | 不支持（主键不能变）               |
+| **适用场景**   | 主键查询、范围扫描 | 各种查询条件                       |
+| **典型引擎**   | InnoDB             | MyISAM, InnoDB二级索引             |
+
+> 聚集索引让数据和索引在一起，一次查找就能获取全部；非聚集索引是数据的目录，找到条目后还需要按图索骥找到实际数据。
+
+## 3、Mysql索引实现原理
 
 **首先要明白索引(index)是在存储引擎(storage engine)层面实现的,而不是server层面**。不是所有的存储引擎都支持所有的索引类型。即使多个存储引擎支持某一索引类型,它们的实现和行为也可能有所差别。
 
@@ -343,7 +449,7 @@ B-Tree 结构的数据可以让系统高效的找到数据所在的磁盘块。�
 
 > B-Tree 中的每个节点根据实际情况可以包含大量的**关键字信息和分支**,如下图所示为一个 3 阶的 B-Tree:
 
-![1640657071545](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/100432-406269.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/100432-406269.png)
 
 每个节点占用一个盘块的磁盘空间,一个节点上有两个升序排序的关键字和三个指向子树根节点的指针,指针存储的是子节点所在磁盘块的地址。两个关键词划分成的三个范围域对应三个指针指向的子树的数据的范围域。以根节点为例,关键字为17和35,P1指针指向的子树的数据范围为小于17,P2指针指向的子树的数据范围为17~35,P3指针指向的子树的数据范围为大于35。
 
@@ -387,11 +493,102 @@ InnoDB存储引擎中页的大小为16KB,一般表的主键类型为INT(占用4�
 1. 通过上面的分析,我们知道IO次数取决于b+数的高度h,假设当前数据表的数据为N,每个磁盘块的数据项的数量是m,则有h=㏒(m+1)N,当数据量N一定的情况下,m越大,h越小;而m = 磁盘块的大小 / 数据项的大小,磁盘块的大小也就是一个数据页的大小,是固定的,如果数据项占的空间越小,数据项的数量越多,树的高度越低。**这就是为什么每个数据项,即索引字段要尽量的小**,比如int占4字节,要比bigint8字节少一半。这也是为什么b+树要求把真实的数据放到叶子节点而不是内层节点,一旦放到内层节点,磁盘块的数据项会大幅度下降,导致树增高。当数据项等于1时将会退化成线性表。
 2. 当b+树的数据项是复合的数据结构,比如(name,age,sex)的时候,b+数是按照从左到右的顺序来建立搜索树的,比如当(张三,20,F)这样的数据来检索的时候,b+树会优先比较name来确定下一步的所搜方向,如果name相同再依次比较age和sex,最后得到检索的数据;但当(20,F)这样的没有name的数据来的时候,b+树就不知道下一步该查哪个节点,因为建立搜索树的时候name就是第一个比较因子,必须要先根据name来搜索才能知道下一步去哪里查询。比如当(张三,F)这样的数据来检索时,b+树可以用name来指定搜索方向,但下一个字段age的缺失,所以只能把名字等于张三的数据都找到,然后再匹配性别是F的数据了, 这个是非常重要的性质,即**索引的最左匹配特性**。
 
+### 核心实现原理
+
+MySQL索引的实现原理，核心可以概括为：**在存储引擎层，以B+树作为主要数据结构，通过高效的查找、排序和索引间协作机制，来大幅提升数据检索速度**。
+
+下面我将从数据结构、不同存储引擎的实现差异，以及索引的协同工作方式这三个方面，为你详细拆解。
+
+#### 核心数据结构：B+树
+
+MySQL的索引主要在**存储引擎层**实现，其中最主流、最核心的数据结构就是**B+树**。InnoDB和MyISAM引擎都使用它，但在具体实现上有所不同。
+
+##### 为什么是B+树？
+
+数据库索引通常存储在磁盘上，数据量庞大无法一次载入内存。因此，索引设计的首要目标是**减少磁盘I/O次数**。B+树因其独特设计成为最佳选择：
+
+*   **对比二叉树**：在数据量大的情况下（如100万），二叉树树高可达20层，意味着查找一个数据最多需要20次磁盘I/O。而B+树是多叉树，在MySQL InnoDB中一个节点默认16KB，若存储整数索引（如bigint 8字节），一个节点可存放约 **1170个** 键值。因此，一个**树高为3的B+树就能存放约1170×1170×16 ≈ 2000万条数据**，查找只需3次I/O，效率极高。
+*   **对比B树**：B+树的非叶子节点**只存储键值，不存储数据**，这使得它能在一个节点内容纳更多键值，进一步降低了树的高度和I/O次数。同时，B+树的叶子节点通过指针形成**有序链表**，非常适合进行范围查询（如 `BETWEEN`, `>`, `<`）和排序。
+*   **对比哈希索引**：哈希索引虽然等值查询（`=`）极快（时间复杂度O(1)），但它是**无序**的，完全**不支持范围查询和排序**。因此，哈希只适用于特定场景（如Memory引擎），而B+树是通用的选择。
+
+下图清晰地展示了B+树的这种结构：
+
+```mermaid
+graph TD
+    subgraph B+树结构示意
+        direction TB
+        Root[根节点<br/>（非叶子节点, 只存键值）] --> Node1[内部节点]
+        Root --> Node2[内部节点]
+        
+        Node1 --> Leaf1[叶子节点<br/>（包含键值+数据指针）]
+        Node1 --> Leaf2[叶子节点]
+        Node2 --> Leaf3[叶子节点]
+        Node2 --> Leaf4[叶子节点]
+
+        Leaf1 --> Leaf2 --> Leaf3 --> Leaf4
+        linkStyle 3,4,5 stroke:#00ff00,stroke-width:2px;
+    end
+    
+    style Root fill:#f9f,stroke:#333
+    style Node1 fill:#ccf,stroke:#333
+    style Node2 fill:#ccf,stroke:#333
+    style Leaf1 fill:#cfc,stroke:#333
+    style Leaf2 fill:#cfc,stroke:#333
+    style Leaf3 fill:#cfc,stroke:#333
+    style Leaf4 fill:#cfc,stroke:#333
+```
+
+#### 两大存储引擎的索引实现
+
+MySQL最常用的InnoDB和MyISAM引擎，虽然底层都用了B+树，但数据的组织方式截然不同，这也决定了它们各自的性能特点。
+
+##### InnoDB引擎：聚集索引
+
+InnoDB是默认存储引擎，其数据文件本身就是按B+树组织的一个索引结构，这就是**聚集索引**。
+
+*   **数据即索引**：在InnoDB中，表数据文件（`.ibd`）就是主键索引。其叶子节点直接**存储了整行数据**。
+*   **只有一个聚集索引**：由于数据只能有一份物理排序方式，因此一张表**只能有一个聚集索引**。其生成规则如下：
+    1.  优先使用用户定义的主键（PRIMARY KEY）。
+    2.  若无主键，则选择第一个唯一非空索引（UNIQUE NOT NULL）。
+    3.  若两者皆无，InnoDB会自动生成一个6字节的隐藏`ROWID`作为聚集索引。
+*   **二级索引（辅助索引）**：除主键外的其他索引都是二级索引。其叶子节点**存储的不是数据本身，而是行的主键值**。因此，通过二级索引查找数据需要**回表**：先在二级索引找到主键ID，再到聚集索引中根据ID查找完整数据。
+
+##### MyISAM引擎：非聚集索引
+
+MyISAM是5.5版本前的默认引擎，它的索引实现是典型的**非聚集索引**。
+
+*   **索引与数据分离**：MyISAM的索引文件（`.MYI`）和数据文件（`.MYD`）是分开存储的。
+*   **索引指向数据地址**：无论主键索引还是二级索引，其B+树叶子节点存储的都是**指向数据行的磁盘地址**。因此，在MyISAM中，通过任何索引查找数据，都需要根据这个地址去数据文件中读取，不需要“回表”的概念，但所有索引的查找路径都是一样的。
+
+#### 索引的协同工作与高效查询
+
+了解了基本结构，我们来看一个查询在InnoDB中是如何利用索引工作的。
+
+*   **查询过程（以二级索引为例）**
+    假设执行 `SELECT * FROM users WHERE name = 'Tom';`，其过程如下：
+    1.  在`name`字段的二级索引B+树中，查找键值`Tom`。
+    2.  从二级索引的叶子节点获取到对应行的主键ID。
+    3.  拿着这个主键ID，到主键的聚集索引B+树中查找。
+    4.  在聚集索引的叶子节点获取到完整的行数据，返回结果。
+
+*   **关键优化机制**
+    *   **覆盖索引**：如果一个索引（通常是联合索引）包含了查询所需的所有字段，那么查询时**无需回表**，直接从索引就能获得结果。这是一种非常重要的查询优化手段，可以大幅提升查询速度。
+    *   **索引下推**：这是MySQL 5.6引入的优化。当使用联合索引查询时，可以在存储引擎层直接对索引中包含的字段进行过滤，只将真正符合条件的结果返回给服务器层，从而**减少回表次数**和服务器层与存储引擎层的数据交互。
+
+#### 总结
+
+| 维度           | 核心要点                                                     | 关键设计/优化                                                |
+| :------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **数据结构**   | 使用**B+树**，通过降低树高减少磁盘I/O，并支持高效的范围查询与排序。 | 非叶子节点仅存键值，叶子节点通过指针形成有序链表。           |
+| **InnoDB实现** | **聚集索引**：数据即主键索引，叶子节点存整行数据；二级索引叶子节点存主键值。 | 表必须有且只有一个聚集索引；二级索引查询需“回表”。           |
+| **MyISAM实现** | **非聚集索引**：索引与数据分离，索引叶子节点存数据的磁盘地址。 | 主键索引与二级索引结构无差异，查找路径一致。                 |
+| **协同机制**   | 通过索引间的协作完成查询。                                   | **覆盖索引**（避免回表）、**索引下推**（ICP，减少回表次数）是两大性能优化法宝。 |
+
 ### MyISAM主键索引与辅助索引的结构
 
 MyISAM引擎的索引文件和数据文件是分离的。**MyISAM引擎索引结构的叶子节点的数据域,存放的并不是实际的数据记录,而是数据记录的地址**。索引文件与数据文件分离,这样的索引称为"**非聚簇索引**"。MyISAM的主索引与辅助索引区别并不大,只是主键索引不能有重复的关键字。
 
-![1640657556602](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/101237-759092.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/101237-759092.png)
 
 在MyISAM中,索引(含叶子节点)存放在单独的.myi文件中,叶子节点存放的是数据的物理地址偏移量(**通过偏移量访问就是随机访问,速度很快**)。
 
@@ -407,7 +604,7 @@ MyISAM引擎的索引文件和数据文件是分离的。**MyISAM引擎索引结
 
 我们知道InnoDB索引是聚集索引,它的索引和数据是存入同一个.idb文件中的,**因此它的索引结构是在同一个树节点中同时存放索引和数据**,如下图中最底层的叶子节点有三行数据,对应于数据表中的id、stu_id、name数据项。
 
-![1640657731717](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/101532-24937.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/101532-24937.png)
 
 在Innodb中,索引分叶子节点和非叶子节点,非叶子节点就像新华字典的目录,单独存放在索引段中,叶子节点则是顺序排列的,在数据段中。Innodb的数据文件可以按照表来切分(只需要开启`innodb_file_per_table)`,切分后存放在`xxx.ibd`中,默认不切分,存放在`xxx.ibdata`中。
 
@@ -422,7 +619,7 @@ MyISAM引擎的索引文件和数据文件是分离的。**MyISAM引擎索引结
 
 这也就是所谓的“**回表查询**”
 
-![1640657775830](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/101626-186268.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/101626-186268.png)
 
 #### InnoDB 索引结构需要注意的点
 
@@ -472,7 +669,7 @@ MyISAM引擎的索引文件和数据文件是分离的。**MyISAM引擎索引结
 
 哈希索引不支持多列联合索引的最左匹配规则,如果有大量重复键值得情况下,哈希索引的效率会很低,因为存在哈希碰撞问题。
 
-## MySQL覆盖索引
+## 4、MySQL覆盖索引
 
 **覆盖索引**(Covering Index),或者叫索引覆盖, 也就是平时所说的**不需要回表操作**
 
@@ -484,7 +681,7 @@ MyISAM引擎的索引文件和数据文件是分离的。**MyISAM引擎索引结
 
 使用explain,可以通过输出的extra列来判断,对于一个索引覆盖查询,显示为**using index**,MySQL查询优化器在执行查询前会决定是否有索引覆盖查询;
 
-## 索引的数据结构
+## 5、索引的数据结构
 
 索引的数据结构主要有**B+树和哈希表,对应的索引分别为B+树索引和哈希索引**。InnoDB引擎的索引类型有B+树索引和哈希索引,默认的索引类型为B+树索引 。
 
@@ -530,16 +727,16 @@ B树和B+树最主要的区别主要有两点:
 
 **B树**
 
-![1631756434279](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094038-927137.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094038-927137.png)
 
 **B+树**
 
-![1631756460901](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094111-18813.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/094111-18813.png)
 
 关于B树B+树这种数据结构,请参考文章:[数据结构-(2-3树,2-3-4树,B-树,B+树)](https://blog.csdn.net/qq_38163244/article/details/109704712)
 
 
-## 数据库为什么使用B+树而不是B树？
+## 6、数据库为什么使用B+树而不是B树？
 
 1. B树适用于随机检索,因为B树中非叶子节点存储的有键对应的值,而B+树适用于随机检索和顺序检索,因为B+树中所有的叶子节点都连接在一起,可以顺序查找。
 2. B+树的空间利用率更高,因为B树每个节点要存储键和值,而B+树的内部节点只存储键,这样B+树的一个节点就可以存储更多的索引,从而使树的高度变低,减少了I/O次数,使得数据检索速度更快。相反B+树中,每一个节点存储的数据是有限的,这也就导致了相同的数据量,使用B树高度会更高,导致IO次数更多。
@@ -548,23 +745,25 @@ B树和B+树最主要的区别主要有两点:
 
 那在什么情况适合使用B树呢,因为B树的内部节点也可以存储值,所以可以把一些频繁访问的值放在距离根节点比较近的地方,这样就可以提高查询效率。综上所述,B+树的性能更加适合作为数据库的索引
 
-> 用B+树不用B树考虑的是**IO对性能的影响**,B树的每个节点都存储数据,而B+树只有叶子节点才存储数据,所以查找相同数据量的情况下,B树的高度更高,IO更频繁。数据库索引是存储在磁盘上的,当数据量大时,就不能把整个索引全部加载到内存了,只能逐一加载每一个磁盘页(对应索引树的节点)。其中在MySQL底层对B+树进行进一步优化:在叶子节点中是双向链表,且在链表的头结点和尾节点也是循环指向的。
+> 用B+树不用B树考虑的是**IO对性能的影响**,B树的每个节点都存储数据,而B+树只有叶子节点才存储数据,所以查找相同数据量的情况下,B树的高度更高,IO更频繁。
+> 
+> 数据库索引是存储在磁盘上的,当数据量大时,就不能把整个索引全部加载到内存了,只能逐一加载每一个磁盘页(对应索引树的节点)。其中在MySQL底层对B+树进行进一步优化:在叶子节点中是双向链表,且在链表的头结点和尾节点也是循环指向的。
 
-## 为何不采用Hash方式？
+## 7、为何不采用Hash方式？
 
 因为Hash索引底层是哈希表,哈希表是一种以key-value存储数据的结构,所以多个数据在存储关系上是完全没有**任何顺序关系**的,所以,对于**区间查询**是无法直接通过索引查询的,就需要全表扫描。
 
-所以,哈希索引只适用于**等值查询**的场景。而B+ Tree是一种多路平衡查询树,所以他的节点是天然有序的(左子节点小于父节点、父节点小于右子节点),所以对于范围查询的时候不需要做全表扫描。
+因此,哈希索引只适用于**等值查询**的场景。而B+ Tree是一种多路平衡查询树,所以他的节点是天然有序的(左子节点小于父节点、父节点小于右子节点),所以对于范围查询的时候不需要做全表扫描。
 
 哈希索引不支持多列联合索引的最左匹配规则,如果有大量重复键值得情况下,哈希索引的效率会很低,因为存在哈希碰撞问题。
 
-## 非聚簇索引一定会进行回表查询吗？
+## 8、非聚簇索引一定会进行回表查询吗？
 
 上面是说了非聚簇索引的叶子节点存储的是主键,也就是说要先通过非聚簇索引找到主键,再通过聚簇索引找到主键所对应的数据,**后面这个再通过聚簇索引找到主键对应的数据的过程就是回表查询**,那么非聚簇索引就一定会进行回表查询吗 ？
 
 答案是不一定的,这里涉及到一个索引覆盖的问题,如果查询的数据再辅助索引上完全能获取到便不需要回表查询。例如有一张表存储着个人信息包括id、name、age等字段。假设聚簇索引是以ID为键值构建的索引,非聚簇索引是以name为键值构建的索引, `select id,name from user where name =zhangsan`; 这个查询便不需要进行回表查询因为,通过非聚簇索引已经能全部检索出数据,这就是索引覆盖的情况。如果查询语句是这样, `select id,name,age from user where name ='zhangsan`; 则需要进行回表查询,因为通过非聚簇索引不能检索出age的值。那应该如何解决那呢？只需要将索引覆盖即可,建立age和name的联合索引再使用 `select id,name,age from user where name = 'zhangsan`; 进行查询即可。所以通过索引覆盖能解决非聚簇索引回表查询的问题。
 
-## 介绍一下覆盖索引
+## 9、介绍一下覆盖索引
 
 如果一个索引包含(或者说覆盖)所有需要查询的字段的值,我们就称之为“覆盖索引”。我们知道在 InnoDB 存储引擎中,如果不是主键索引,叶子节点存储的是主键+列值。最终还是要“回表”,也就是要通过主键再查找一次。这样就会比较慢覆盖索引就是把要查询出的列和索引是对应的,不做回表操作！
 
@@ -578,15 +777,15 @@ B树和B+树最主要的区别主要有两点:
 覆盖索引:
 ![](https://vscodepic.oss-cn-beijing.aliyuncs.com/blog/20210420165341868.png)
 
-## 数据库事务
+## 10、数据库事务
 
-> 事务的隔离级别有哪些？MySQL的默认隔离级别是什么？
+> 1、事务的隔离级别有哪些？MySQL的默认隔离级别是什么？
 >
-> 什么是幻读,脏读,不可重复读呢？
+> 2、什么是幻读,脏读,不可重复读呢？
 >
-> MySQL事务的四大特性以及实现原理
+> 3、MySQL事务的四大特性以及实现原理
 >
-> MVCC熟悉吗,它的底层原理？
+> 4、MVCC熟悉吗,它的底层原理？
 
 ### 什么是数据库事务？
 
@@ -601,7 +800,6 @@ B树和B+树最主要的区别主要有两点:
 - **I (Isolation)隔离性**:一个事务的执行不能其它事务干扰。即一个事务内部的操作及使用的数据对其它并发事务是隔离的,并发执行的各个事务之间不能互相干扰
 - **D (Durability) 持久性**:在事务完成以后,该事务所对数据库所作的更改便持久的保存在数据库之中,并不会被回滚
 
-![1640658625559](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/28/103027-450235.png)
 
 > MySQL InnoDB 引擎使用 **redo log(重做日志)** 保证事务的**持久性**,使用 **undo log(回滚日志)** 来保证事务的**原子性**。
 >
@@ -613,25 +811,25 @@ B树和B+树最主要的区别主要有两点:
 
 在典型的应用程序中,多个事务并发运行,经常会操作相同的数据来完成各自的任务(多个用户对同一数据进行操作)。并发虽然是必须的,但可能会导致以下的问题。
 
-- 脏读(Dirty Reads):事务A更新了数据,但还没有提交,这时事务B读取到事务A更新后的数据,然后事务A回滚了,事务B读取到的数据就成为脏数据了。
+- **脏读(Dirty Reads)**:事务A更新了数据,但还没有提交,这时事务B读取到事务A更新后的数据,然后事务A回滚了,事务B读取到的数据就成为脏数据了。
 
-![1640754623409](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/131029-647685.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/131029-647685.png)
 
 > 因为事务A读取到事务B**未提交的数据**,这就是脏读。
 
-- 不可重复读(Non-Repeatable Reads):事务A对数据进行多次读取,事务B在事务A多次读取的过程中执行了更新操作并提交了,导致事务A多次读取到的数据并不一致。
+- **不可重复读(Non-Repeatable Reads)**:事务A对数据进行多次读取,事务B在事务A多次读取的过程中执行了更新操作并提交了,导致事务A多次读取到的数据并不一致。
 
-![1640754660315](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/31/082912-262048.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/31/082912-262048.png)
 
 > 事务A被事务B干扰到了！在事务A范围内,两个相同的查询,读取同一条记录,却返回了不同的数据,这就是**不可重复读**。
 
-- 幻读(Phantom Reads):幻读与不可重复读类似。它发生在一个事务A读取了几行数据,接着另一个并发事务B插入了一些数据时。在随后的查询中,事务A就会发现多了一些原本不存在的记录,就好像发生了幻觉一样,所以称为幻读。
+- **幻读(Phantom Reads)**:幻读与不可重复读类似。它发生在一个事务A读取了几行数据,接着另一个并发事务B插入了一些数据时。在随后的查询中,事务A就会发现多了一些原本不存在的记录,就好像发生了幻觉一样,所以称为幻读。
 
-![1640754695756](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/31/082908-401624.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/31/082908-401624.png)
 
 > 事务A查询一个范围的结果集,另一个并发事务B往这个范围中插入新的数据,并提交事务,然后事务A再次查询相同的范围,两次读取到的结果集却不一样了,这就是幻读。
 
-- 丢失修改(Lost Update):事务A和事务B都对同一个数据进行修改,事务A先修改,事务B随后修改,事务B的修改覆盖了事务A的修改。
+- **丢失修改(Lost Update)**:事务A和事务B都对同一个数据进行修改,事务A先修改,事务B随后修改,事务B的修改覆盖了事务A的修改。
 
 > 不可重复度和幻读看起来比较像,它们主要的区别是:在不可重复读中,发现数据不一致主要是数据被更新了。在幻读中,发现数据不一致主要是数据增多或者减少了。
 
@@ -639,6 +837,19 @@ B树和B+树最主要的区别主要有两点:
 
 - **不可重复读的重点是修改**:在同一事务中,同样的条件,第一次读的数据和第二次读的数据不一样。(因为中间有其他事务提交了修改)
 - **幻读的重点在于新增或者删除**:在同一事务中,同样的条件,,第一次和第二次读出来的记录数不一样。(因为中间有其他事务提交了插入/删除)
+
+| 对比维度           | 不可重复读               | 幻读                                        |
+| :----------------- | :----------------------- | :------------------------------------------ |
+| **操作类型**       | UPDATE（更新）           | INSERT（插入）/ DELETE（删除）              |
+| **影响范围**       | 单个已存在的记录         | 记录集合的数量                              |
+| **锁定对象**       | 已存在的行               | 行之间的间隙（范围）                        |
+| **解决机制**       | 行锁（Record Lock）      | 间隙锁（Gap Lock）/ 临键锁（Next-Key Lock） |
+| **RR隔离级别行为** | 通过MVCC避免             | 通过间隙锁避免                              |
+| **是否违反一致性** | 读取到过时数据           | 读取到新出现的数据                          |
+| **示例场景**       | 两次读取同一个人年龄不同 | 两次统计人数结果不同                        |
+
+- 不可重复读：同一条记录的内容被修改（数据变化） 
+- 幻读：记录的数量发生变化（数据增删）
 
 **并发事务处理带来的问题的解决办法:**
 
@@ -732,7 +943,81 @@ MySQL InnoDB 引擎通过 **锁机制**、**MVCC** 等手段来保证事务的�
 
 答案就是,**MVCC多版本并发控制**！它实现读取数据不用加锁,可以让读取数据同时修改。修改数据时同时可读取,是一种乐观锁的思想。
 
-## 什么是MVCC
+#### 解决不可重复读：MVCC + 行锁
+
+```mermaid
+graph LR
+    subgraph Solve_Unrepeatable [解决不可重复读]
+        direction TB
+        
+        T1[事务1<br/>RR级别] --> MVCC1[第一次读取<br/>创建ReadView]
+        MVCC1 --> Read1[读取id=1: age=25<br/>从快照读]
+        
+        T2[事务2] --> Update1[更新id=1: age=30]
+        Update1 --> Commit1[提交]
+        
+        T1 --> MVCC2[第二次读取<br/>使用同一ReadView]
+        MVCC2 --> Read2[读取id=1: age=25<br/>仍然从快照读 ✅]
+        
+        style Read1 fill:#99ff99
+        style Update1 fill:#ff9999
+        style Read2 fill:#99ff99
+    end
+```
+
+原理：在RR隔离级别，事务第一次读取时创建快照（ReadView），后续所有读取都从这个快照获取数据，因此不会看到其他事务已提交的更新。
+
+#### 解决幻读：间隙锁 + 临键锁
+
+```mermaid
+graph LR
+    subgraph Solve_Phantom [解决幻读]
+        direction TB
+        
+        T1[事务1<br/>RR级别] --> Query1[范围查询<br/>WHERE age>20]
+        Query1 --> Lock[加临键锁<br/>覆盖所有可能插入的间隙]
+        
+        T2[事务2] --> Insert[尝试插入age=26<br/>新记录]
+        Insert --> Blocked[被间隙锁阻塞 ⏳]
+        
+        T1 --> Query2[第二次查询]
+        Query2 --> Same[结果与第一次相同 ✅]
+        
+        T1 --> Commit[提交]
+        Commit --> Release[释放锁]
+        Release --> T2Insert[T2插入成功]
+        
+        style Lock fill:#ff9999
+        style Blocked fill:#ffff99
+    end
+```
+
+原理：在RR隔离级别，InnoDB使用临键锁（Next-Key Lock） = 记录锁 + 间隙锁，锁定查询范围涉及的索引记录及其间的空隙，防止其他事务在该范围内插入新记录。
+
+
+#### 不同隔离级别对比
+
+```mermaid
+flowchart TD
+    subgraph Isolation_Levels [隔离级别对比]
+        RU[读未提交] -->|脏读 ✅<br/>不可重复读 ✅<br/>幻读 ✅| Dirty[所有问题都存在]
+        
+        RC[读已提交] -->|脏读 ❌<br/>不可重复读 ✅<br/>幻读 ✅| NoDirty[解决了脏读]
+        
+        RR[可重复读<br/>MySQL默认] -->|脏读 ❌<br/>不可重复读 ❌<br/>幻读 ❌| NoProblems[通过MVCC+间隙锁<br/>理论上解决所有]
+        
+        Serial[可串行化] -->|所有问题 ❌| Strong[强制事务串行执行<br/>性能最差]
+        
+        style RR fill:#99ff99
+    end
+```
+重要说明：
+
+1. MySQL的RR级别通过间隙锁真正解决了幻读，这是MySQL与标准SQL规范的不同之处 
+2. 标准SQL中RR级别只要求解决不可重复读，不要求解决幻读 
+3. MySQL通过更强的锁定机制，在RR级别就实现了可串行化级别的幻读防护
+
+## 11、什么是MVCC
 
 MVCC(multiple version concurrent control)是一种控制并发的方法,主要用来提高数据库的并发性能。
 
@@ -749,40 +1034,110 @@ MVCC,即**Multi-Version  Concurrency Control (多版本并发控制)**。它是�
 
 可以看到MVCC的作用就是在不加锁的情况下,解决数据库读写冲突问题,并且解决脏读、幻读、不可重复读等问题,但是不能解决丢失修改问题。
 
+
+```mermaid
+graph TB
+    subgraph MVCC_Concept [MVCC核心思想]
+        direction TB
+        Idea[读不加锁，写不加锁<br/>读写互不阻塞] --> Version[数据多版本]
+        Version --> Snapshot[每个事务看到特定快照]
+        Snapshot --> Consistency[实现一致性非锁定读]
+        
+        Style1[优点] --> HighConcurrency[高并发 ✅]
+        Style1 --> NoBlock[读写不互斥 ✅]
+        Style1 --> Consistent[一致性读 ✅]
+        
+        Style2[代价] --> Storage[存储开销 📦]
+        Style2 --> Cleanup[需要清理机制 🧹]
+    end
+```
+
+> MVCC让每个事务都仿佛拥有数据库的一个"快照"，读操作读快照，写操作创建新版本，读写互不阻塞。
+
 MVCC实现原理分析:
 
 ### 事务版本号
 
 事务每次开启前,都会从数据库获得一个**自增**长的事务ID,可以从事务ID判断事务的执行先后顺序。这就是事务版本号。
 
-### 隐士字段
+### 隐藏字段
 
-对于InnoDB存储引擎,每一行记录都有两个隐藏列**trx_id**、**roll_pointer**,如果表中没有主键和非NULL唯一键时,则还会有第三个隐藏的主键列**row_id**。
+InnoDB中，每行记录除了用户定义的字段外，还包含三个隐藏字段：**trx_id**、**roll_pointer**,如果表中没有主键和非NULL唯一键时,则还会有第三个隐藏的主键列**row_id**。
 
-![1640755088832](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/131813-870378.png)
+```sql
+-- 用户看到的表
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name VARCHAR(50),
+    age INT
+);
+
+-- 实际存储的结构（伪代码）
+CREATE TABLE users_actual (
+    -- 用户字段
+    id INT PRIMARY KEY,
+    name VARCHAR(50),
+    age INT,
+    
+    -- InnoDB隐藏字段
+    DB_ROW_ID INT,           -- 行ID（无主键时使用）
+    DB_TRX_ID INT,           -- 最后修改该行的事务ID
+    DB_ROLL_PTR INT          -- 回滚指针，指向undo log中的旧版本
+);
+```
+
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/131813-870378.png)
+
+| 隐藏字段        | 作用                                 | 长度  |
+| :-------------- | :----------------------------------- | :---- |
+| **DB_TRX_ID**   | 记录最后修改/插入该行的事务ID        | 6字节 |
+| **DB_ROLL_PTR** | 回滚指针，指向undo log中的前一个版本 | 7字节 |
+| **DB_ROW_ID**   | 隐式自增ID（无主键时作为聚集索引）   | 6字节 |
 
 ### undo log
+
+```mermaid
+graph TD
+    subgraph Undo_Log [Undo Log链]
+        direction LR
+        
+        Current[当前版本<br/>trx_id=100<br/>name='Tom'] --> RollPtr1[回滚指针]
+        RollPtr1 --> V2[版本2<br/>trx_id=95<br/>name='Tommy']
+        V2 --> RollPtr2[回滚指针]
+        RollPtr2 --> V1[版本1<br/>trx_id=90<br/>name='Thomas']
+        V1 --> NULL[NULL]
+        
+        style Current fill:#99ff99
+        style V2 fill:#ffff99
+        style V1 fill:#ff9999
+    end
+```
 
 undo log,**回滚日志**,用于记录数据被修改前的信息。在表记录修改之前,会先把数据拷贝到undo log里,如果事务回滚,即可以通过undo log来还原数据。
 
 可以这样认为,当delete一条记录时,undo log 中会记录一条对应的insert记录,当update一条记录时,它记录一条对应相反的update记录。
 
-undo log有什么用途呢？
+Undo Log作用：
 
-1. 事务回滚时,保证原子性和一致性。
-2. 用于MVCC**快照读**。
+1. 事务回滚：用于撤销未提交事务的修改 
+2. 多版本读：为其他事务提供旧版本数据
+
+两种Undo Log：
+
+1. insert undo log：INSERT操作产生，事务提交后可直接删除 
+2. update undo log：UPDATE/DELETE操作产生，用于MVCC，需要保留到无事务需要时
 
 ### 版本链
 
 多个事务并行操作某一行数据时,不同事务对该行数据的修改会产生多个版本,然后通过回滚指针(roll_pointer),连成一个链表,这个链表就称为**版本链**。如下:
 
-![1640755225922](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/132028-838898.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/132028-838898.png)
 
 其实,通过版本链,我们就可以看出**事务版本号、表格隐藏的列和undo log**它们之间的关系。我们再来小分析一下。
 
 1. 假设现在有一张core_user表,表里面有一条数据,id为1,名字为孙权:
 
-![1640755360940](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/132243-125964.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/132243-125964.png)
 
 2. 现在开启一个事务A:对core_user表执行`update core_user set name ="曹操" where id=1`,会进行如下流程操作
 3. 首先获得一个事务ID=100
@@ -791,6 +1146,18 @@ undo log有什么用途呢？
 6. 把修改后的数据事务Id=101改成当前事务版本号,并把**roll_pointer**指向undo log数据地址。
 
 ### Read View
+
+ReadView 是MVCC实现一致性读的核心数据结构，它记录了某个时刻所有活跃事务的信息。
+
+```sql
+// ReadView结构（概念）
+struct ReadView {
+    trx_id_t creator_trx_id;     // 创建该ReadView的事务ID
+    trx_id_t m_low_limit_id;      // 高水位：大于该ID的事务都不可见
+    trx_id_t m_up_limit_id;       // 低水位：小于该ID的事务都可见
+    ids_t m_ids;                  // 活跃事务ID列表
+};
+```
 
 - **Read View是什么呢？** 它就是事务执行SQL语句时,产生的读视图。实际上在innodb中,每个SQL语句执行前都会得到一个Read View。
 - **Read View有什么用呢？** 它主要是用来做**可见性判断的,即判断当前事务可见哪个版本的数据**~
@@ -811,6 +1178,218 @@ Read View是如何保证可见性判断的呢？我们先看看Read view 的几�
 > - (1).如果`m_ids`包含`trx_id`,则代表Read View生成时刻,这个事务还未提交,但是如果数据的`trx_id`等于`creator_trx_id`的话,表明数据是自己生成的,因此是**可见**的。
 > - (2)如果`m_ids`包含`trx_id`,并且`trx_id`不等于`creator_trx_id`,则Read   View生成时,事务未提交,并且不是自己生产的,所以当前事务也是**看不见**的;
 > - (3).如果`m_ids`不包含`trx_id`,则说明你这个事务在Read View生成之前就已经提交了,修改的结果,当前事务是能看见的。
+
+ReadView判断规则:
+
+```mermaid
+graph TD
+    subgraph ReadView_Rules [ReadView可见性判断]
+        Start[判断事务ID trx_id] --> Q1{trx_id == creator_trx_id?}
+        Q1 -->|是| Visible[可见 ✅<br/>自己修改的]
+        
+        Q1 -->|否| Q2{trx_id < m_up_limit_id?}
+        Q2 -->|是| Visible2[可见 ✅<br/>已提交的旧事务]
+        
+        Q2 -->|否| Q3{trx_id >= m_low_limit_id?}
+        Q3 -->|是| Invisible[不可见 ❌<br/>未来启动的事务]
+        
+        Q3 -->|否| Q4{trx_id in m_ids?}
+        Q4 -->|是| Invisible2[不可见 ❌<br/>活跃事务]
+        Q4 -->|否| Visible3[可见 ✅<br/>已提交事务]
+    end
+```
+
+简化规则：
+
+1. 比自己早提交的 → 可见 
+2. 比自己晚开始的 → 不可见 
+3. 未提交的 → 不可见 
+4. 自己修改的 → 可见
+
+
+### MVCC工作流程
+
+#### INSERT操作
+
+```sql
+BEGIN;  -- 事务ID=100
+INSERT INTO users (id, name, age) VALUES (1, 'Tom', 25);
+```
+
+```mermaid
+graph LR
+    subgraph Insert_Process [INSERT过程]
+        Insert[插入新记录] --> SetTrxId[设置DB_TRX_ID=100]
+        SetTrxId --> SetRollPtr[设置DB_ROLL_PTR=NULL]
+        SetRollPtr --> Undo[同时记录insert undo log<br/>用于回滚]
+        
+        Commit[提交] --> DeleteUndo[insert undo log可删除]
+        Rollback[回滚] --> UseUndo[使用undo log删除记录]
+    end
+```
+
+#### UPDATE操作
+
+```sql
+-- 初始记录: id=1, name='Tom', age=25, trx_id=90
+
+BEGIN;  -- 事务ID=100
+UPDATE users SET age = 26 WHERE id = 1;
+```
+
+```mermaid
+graph TB
+    subgraph Update_Process [UPDATE完整过程]
+        Original[原记录<br/>trx_id=90<br/>age=25<br/>roll_ptr->NULL]
+        
+        Step1[加行锁<br/>锁定原记录] --> Step2[复制记录到undo log]
+        Step2 --> Step3[更新原记录]
+        
+        Step3 --> NewRecord[新记录<br/>trx_id=100<br/>age=26<br/>roll_ptr->旧版本]
+        
+        NewRecord --> UndoChain[undo log形成版本链]
+        UndoChain --> V2[版本2<br/>trx_id=90<br/>age=25<br/>roll_ptr->NULL]
+        
+        Step2 -.-> V2
+        NewRecord -.-> V2
+        
+        style NewRecord fill:#99ff99
+        style V2 fill:#ff9999
+    end
+```
+
+#### SELECT操作（一致性非锁定读）
+
+```sql
+-- 场景：RR隔离级别
+BEGIN;  -- 事务A, trx_id=100
+SELECT * FROM users WHERE id = 1;
+-- 第一次查询创建ReadView
+```
+
+```mermaid
+sequenceDiagram
+    participant T as 事务A(trx_id=100)
+    participant R as 记录(版本链)
+    participant RV as ReadView
+    
+    T->>RV: 创建ReadView<br/>m_ids=[95,98], up=95, low=101
+    
+    T->>R: 读取记录id=1
+    R->>RV: 当前版本trx_id=100
+    
+    Note over RV: 规则检查<br/>trx_id=100 == creator_trx_id?
+    RV-->>T: ✅ 可见，直接返回
+    
+    T->>R: 继续读取(假设还有trx_id=98版本)
+    R->>RV: trx_id=98
+    Note over RV: trx_id=98 in m_ids? ✅
+    RV-->>T: ❌ 不可见，继续找旧版本
+    
+    T->>R: 读取trx_id=95版本
+    R->>RV: trx_id=95
+    Note over RV: trx_id=95 < up_limit? ✅
+    RV-->>T: ✅ 可见，返回该版本
+```
+
+### 不同隔离级别下的MVCC行为
+
+#### READ COMMITTED（读已提交）
+
+```sql
+-- 每次查询都创建新的ReadView
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+BEGIN;
+SELECT * FROM users WHERE id = 1;  -- 创建ReadView1
+-- 其他事务提交
+SELECT * FROM users WHERE id = 1;  -- 创建ReadView2，能看到已提交的修改
+COMMIT;
+```
+
+```mermaid
+graph LR
+    subgraph RC_Behavior [RC级别MVCC行为]
+        direction TB
+        
+        T1[事务A开始] --> Q1[查询1<br/>创建ReadView1]
+        Q1 --> Data1[看到ReadView1时的快照]
+        
+        T2[事务B提交] --> Commit[事务B提交]
+        
+        Q2[查询2<br/>创建ReadView2] --> Data2[看到ReadView2时的快照<br/>包含事务B的修改]
+        
+        style Q1 fill:#99ff99
+        style Q2 fill:#ffff99
+    end
+```
+
+#### REPEATABLE READ（可重复读）- MySQL默认
+
+```sql
+-- 只在第一次查询时创建ReadView
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+BEGIN;
+SELECT * FROM users WHERE id = 1;  -- 创建ReadView，整个事务使用同一个
+-- 其他事务提交
+SELECT * FROM users WHERE id = 1;  -- 使用同一个ReadView，看不到修改
+COMMIT;
+```
+
+```mermaid
+graph LR
+    subgraph RR_Behavior [RR级别MVCC行为]
+        direction TB
+        
+        T1[事务A开始] --> Q1[第一次查询<br/>创建ReadView]
+        Q1 --> RV[同一个ReadView<br/>用于整个事务]
+        
+        T2[事务B提交] --> Commit[事务B提交]
+        
+        Q2[后续查询] --> RV2[使用同一个ReadView]
+        RV2 --> Same[看到与第一次相同的结果]
+        
+        style Q1 fill:#99ff99
+        style RV fill:#99ccff
+        style Q2 fill:#99ff99
+    end
+```
+
+### 快照读 VS 当前读
+
+```sql
+-- 快照读（Snapshot Read）：不加锁，使用MVCC
+SELECT * FROM users WHERE id = 1;
+SELECT * FROM users WHERE age > 20;  -- 快照读
+
+-- 当前读（Current Read）：加锁，读取最新版本
+SELECT * FROM users WHERE id = 1 FOR UPDATE;  -- 加X锁
+SELECT * FROM users WHERE id = 1 LOCK IN SHARE MODE;  -- 加S锁
+UPDATE users SET age = 26 WHERE id = 1;  -- 先当前读，再加锁更新
+DELETE FROM users WHERE id = 1;  -- 先当前读，再加锁删除
+INSERT INTO users ...  -- 加锁
+```
+
+### MVCC 优势和代价
+
+**优势**
+
+| 优势           | 说明                               |
+| :------------- | :--------------------------------- |
+| **读写不互斥** | 读操作不会阻塞写，写操作不会阻塞读 |
+| **高并发**     | 读操作无需加锁，大大提升并发性能   |
+| **一致性读**   | 无需加锁即可实现一致性读取         |
+| **死锁减少**   | 读操作不加锁，减少了死锁可能性     |
+
+**代价**
+
+| 代价           | 说明                               | 解决方案                     |
+| :------------- | :--------------------------------- | :--------------------------- |
+| **存储开销**   | 需要额外空间存储隐藏字段和undo log | 定期清理purge                |
+| **版本链维护** | 版本链过长影响查询性能             | 合理配置innodb_purge_threads |
+| **清理负担**   | 需要purge线程清理无用版本          | 监控History list length      |
+| **事务ID限制** | 事务ID有限（6字节，约281万亿）     | 循环使用，wrap安全处理       |
 
 ### mvcc实现原理分析
 
@@ -949,15 +1528,41 @@ min_limit_id(100)=<trx_id(100)< max_limit_id(102);
 
 总结一下,MVCC的作用就是在避免加锁的情况下最大限度解决读写并发冲突的问题,它可以实现提交读和可重复度两个隔离级
 
-## 数据库锁
 
-> 数据库的乐观锁和悲观锁？
+### 关键问题
+
+1. **MVCC解决了什么问题？**
+    - 读写并发冲突，实现高并发下的数据一致性
+2. **MVCC在RC和RR级别有什么区别？**
+    - RC：每个SELECT创建新的ReadView
+    - RR：事务内第一个SELECT创建ReadView并复用
+3. **快照读和当前读的区别？**
+    - 快照读：不加锁，读历史版本
+    - 当前读：加锁，读最新版本
+4. **MVCC如何解决不可重复读？**
+    - 通过ReadView保证事务内多次读取结果一致
+5. **MVCC能解决幻读吗？**
+    - 快照读可以解决幻读（RR级别）
+    - 当前读需要间隙锁配合
+
+
+![](./image/mvcc机制总结.png)
+
+MVCC是InnoDB实现高并发的核心机制，通过数据多版本和一致性快照，让读操作不加锁也能看到一致的数据视图，实现了读写互不阻塞的优雅并发控制。
+
+## 12、数据库锁原理
+
+> 1、数据库的乐观锁和悲观锁？
 >
-> MySQL 中有哪几种锁,列举一下？
+> 2、MySQL 中有哪几种锁,列举一下？
 >
-> MySQL中InnoDB引擎的行锁是怎么实现的？
+> 3、MySQL中InnoDB引擎的行锁是怎么实现的？
 >
-> MySQL 间隙锁有没有了解,死锁有没有了解,写一段会造成死锁的 sql 语句,死锁发生了如何解决,MySQL 有没有提供什么机制去解决死锁
+> 4、MySQL 间隙锁有没有了解,死锁有没有了解,写一段会造成死锁的 sql 语句,死锁发生了如何解决,MySQL 有没有提供什么机制去解决死锁
+
+### Mysql数据库锁体系
+
+![](./image/mysql锁体系.png)
 
 ### 什么是数据库锁
 
@@ -1329,7 +1934,13 @@ SELECT * FROM products WHERE id LIKE '3' FOR UPDATE;
 
 > MySQL 遇到过死锁问题吗,你是如何解决的？
 
-## 死锁
+## 13、数据库死锁
+
+![](./image/数据库锁.png)
+
+核心观点：不同存储引擎由于锁机制不同，避免死锁的策略也完全不同。InnoDB最复杂（行锁+间隙锁），MyISAM最简单（表锁无死锁）。
+
+
 
 ### 死锁产生
 
@@ -1347,9 +1958,37 @@ SELECT * FROM products WHERE id LIKE '3' FOR UPDATE;
 
 ### MyISAM避免死锁
 
+锁特性:
+
+```mermaid
+graph TB
+subgraph MyISAM_Locks [MyISAM表级锁]
+direction LR
+
+Table[表] --> ReadLock[读锁<br/>多个事务可共享]
+Table --> WriteLock[写锁<br/>独占]
+
+ReadLock --> Read1[SELECT ✅]
+ReadLock --> Read2[SELECT ✅]
+
+WriteLock --> Write1[UPDATE ❌ 其他事务等待]
+
+ReadLock -.->|升级| WriteLock[需要时升级<br/>可能导致死锁]
+end
+```
+
 - 在自动加锁的情况下,MyISAM 总是一次获得 SQL 语句所需要的全部锁,所以 MyISAM 表不会出现死锁。
 
+MyISAM特性：
+
+1. 只有表级锁，没有行锁 
+2. 读锁共享，写锁排他 
+3. 没有死锁风险（因为表锁是单次获取） 
+4. 但并发性能差
+
 ### InnoDB避免死锁
+
+事务优化策略: 固定访问顺序、减少锁范围、使用较低隔离级别
 
 - 为了在单个InnoDB表上执行多个并发写入操作时避免死锁,可以在事务开始时通过为预期要修改的每个元祖(行)使用`SELECT ... FOR UPDATE`语句来获取必要的锁,即使这些行的更改语句是在之后才执行的。
 - 在事务中,如果要更新记录,应该直接申请足够级别的锁,即排他锁,而不应先申请共享锁、更新时再申请排他锁,因为这时候当用户再申请排他锁时,其他事务可能又已经获得了相同记录的共享锁,从而造成锁冲突,甚至死锁
@@ -1358,6 +1997,53 @@ SELECT * FROM products WHERE id LIKE '3' FOR UPDATE;
 - 改变事务隔离级别
 
 如果出现死锁,可以用 `show engine innodb status;`命令来确定最后一个死锁产生的原因。返回结果中包括死锁相关事务的详细信息,如引发死锁的 SQL 语句,事务已经获得的锁,正在等待什么锁,以及被回滚的事务等。据此可以分析死锁产生的原因和改进措施。
+
+索引优化策略：确保索引减少锁范围、 覆盖索引减少锁竞争、使用乐观锁代替悲观锁
+
+死锁检测与自动回滚：
+
+```mermaid
+sequenceDiagram
+    participant T1 as 事务1
+    participant T2 as 事务2
+    participant InnoDB as InnoDB死锁检测器
+    
+    T1->>InnoDB: 持有锁A，请求锁B
+    T2->>InnoDB: 持有锁B，请求锁A
+    
+    InnoDB->>InnoDB: 检测到循环等待
+    InnoDB->>InnoDB: 选择回滚代价小的事务
+    
+    alt 选择T2回滚
+        InnoDB-->>T2: 回滚事务
+        T2-->>T1: 释放锁B
+        T1->>InnoDB: 获取锁B，继续执行
+    end
+```
+
+**相关参数**
+
+```sql
+-- 查看死锁检测设置
+SHOW VARIABLES LIKE 'innodb_deadlock_detect';
+-- 默认ON，启用死锁检测
+
+-- 设置锁等待超时（秒）
+SET GLOBAL innodb_lock_wait_timeout = 50;
+-- 默认50秒，超时自动回滚
+```
+
+### 不同存储引擎死锁对比
+
+| 策略            | InnoDB       | MyISAM | Memory | NDB        |
+| :-------------- | :----------- | :----- | :----- | :--------- |
+| **锁粒度**      | 行锁+间隙锁  | 表锁   | 表锁   | 分布式行锁 |
+| **死锁可能性**  | 高           | 无     | 低     | 中         |
+| **死锁检测**    | 自动检测回滚 | 不适用 | 无     | 分布式检测 |
+| **自动重试**    | 应用层处理   | 不适用 | 不适用 | 支持       |
+| **乐观锁支持**  | ✅            | ❌      | ❌      | ✅          |
+| **SKIP LOCKED** | ✅ 8.0+       | ❌      | ❌      | ❌          |
+| **NOWAIT**      | ✅ 8.0+       | ❌      | ❌      | ✅          |
 
 ### 数据库锁与隔离级别的关系
 
@@ -1394,8 +2080,30 @@ MyISAM默认采用**表级锁**,InnoDB默认采用**行级锁**。
 - 不要申请超过实际需要的锁级别,查询时尽量不要显示加锁
 - 对于一些特定的事务,可以表锁来提高处理速度或减少死锁的概率。
 
+### 小结
 
-## Mysql调优
+InnoDB（最常用）
+- ✅ 固定访问顺序
+- ✅ 使用RC隔离级别
+- ✅ 添加合适索引
+- ✅ 使用SKIP LOCKED (8.0+)
+- ✅ 短事务
+ 
+MyISAM（读多写少）
+- ✅ 避免并发写
+- ✅ 使用LOW_PRIORITY
+- ✅ 读写分离
+
+Memory（临时数据）
+- ✅ 尽快提交
+- ✅ 避免复杂事务
+
+NDB（分布式）
+- ✅ 使用乐观锁
+- ✅ 合理分区
+- ✅ 设置重试机制
+
+## 14、Mysql调优手段
 
 > 日常工作中你是怎么优化SQL的？
 >

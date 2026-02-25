@@ -1,7 +1,7 @@
 ---
-title: 3、PostgreSql数据库和Mysql数据库对比
-icon: devicon:mysql-wordmark
-order: 3
+title: 4、PostgreSql数据库和Mysql数据库对比
+icon: tabler:brand-mysql
+order: 4
 author: bugcode
 date: 2024-11-16T00:00:00.000Z
 copyright: bugcode
