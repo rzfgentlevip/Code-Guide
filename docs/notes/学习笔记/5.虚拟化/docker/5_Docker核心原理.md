@@ -1,5 +1,5 @@
 ---
-title: 5、Docker核心原理
+title: 5、Docker引擎核心原理
 icon: vscode-icons:folder-type-docker-opened
 order: 5
 author: bugcode
@@ -7,7 +7,7 @@ date: 2024-01-01T00:00:00.000Z
 footer: 云原生
 copyright: bugcode
 createTime: 2025/09/04 14:29:58
-permalink: /learning-notes/virtualization/docker/Docker核心原理/
+permalink: /learning-notes/virtualization/docker/Docker引擎核心原理/
 ---
 
 
