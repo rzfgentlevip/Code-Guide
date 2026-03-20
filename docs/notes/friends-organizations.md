@@ -534,7 +534,7 @@ groups:
     list:
     -
       name: 故事的开始
-      link: https://mp.weixin.qq.com/s/JMGgpIF9VYlfWXxQIi84Zg
+      link: https://mp.weixin.qq.com/s/JMGgpIF9VYlfWXxQIi84Zg 有有有      
       location: 中国，江西
       avatar: /avatar/jl.png
       organization: 江理一起来学微信公众号

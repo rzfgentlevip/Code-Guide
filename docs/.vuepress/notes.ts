@@ -27,8 +27,8 @@ const backendManage = defineNoteConfig({
 })
 
 const CSDIY = defineNoteConfig({
-    dir: 'CS-DIY',
-    link: '/csdiy/',
+    dir: 'CPLUS',
+    link: '/cplus/',
     sidebar: 'auto'
 })
 

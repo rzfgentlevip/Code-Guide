@@ -22,6 +22,6 @@ config:
 
         - theme: alt
           text: 语雀文档
-          link: https://www.yuque.com/pguide/public
+          link: https://www.yuque.com/dashboard
           icon: /icon/yuque.svg   
 ---

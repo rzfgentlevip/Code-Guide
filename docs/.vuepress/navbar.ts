@@ -357,112 +357,36 @@ export const navbar = defineNavbarConfig([
             },
         ]
     },
-    // CS-DIY 导航
+    // CPLUS+
     {
         icon: '/icon/code.svg',
-        text: 'CS-DIY',
+        text: 'C-PLUS+',
         items: [
-            {icon: '/icon/code.svg', text: '前言', link: '/cs-diy/'},
+            {
+                icon: '/icon/code.svg',
+                text: '前言',
+                link: '/cplus/'
+            },
             {
                 icon: 'mdi:tools',
-                text: '必学工具',
+                text: 'C++必学工具',
                 items: [
-                    {icon: 'icon-park-solid:correct',text: '基础工具',link: '/csdiy/tools-must/'},
-
-
+                    {
+                        icon: 'icon-park-solid:correct',
+                        text: '开发工具',
+                        link: '/cplus/tools-must/'},
                     // {icon: '',text: '',link: ''},
                     // {icon: '',text: '',link: ''},
                 ]
             },
             {
                 icon: '/icon/path.svg',
-                text: '学习路线',
+                text: 'C++特性',
                 items: [
                     {
                         icon: 'mdi:collections-bookmark',
                         text: '合集收录',
-                        link: '/csdiy/study-path/'
-                    },
-                ]
-            },
-            {
-                icon: 'carbon:cics-program',
-                text: '编程入门',
-                items: [
-                    {
-                        icon: 'ant-design:code-outlined',
-                        text: '基础语法',
-                        link: '/csdiy/program-begin/grammar/',
-                    },
-                    {
-                        icon: 'lsicon:setting-outline',
-                        text: '环境配置',
-                        link: '/csdiy/program-begin/PYPI-mirror/',
-                    },
-                ]
-            },
-            {
-                icon: '/icon/dev-standard.svg',
-                text: '开发规范',
-                items: [
-                    {
-                        icon: 'ic:baseline-rule-folder',
-                        text: '简介',
-                        link: '/csdiy/dev-rules/what-dev-rules/'
-                    },
-                    {
-                        icon: 'material-icon-theme:python',
-                        text: 'Python PEP 8',
-                        link: 'https://peps.python.org/pep-0008/',
-                    },
-                ]
-            },
-            {
-                icon: 'fa6-solid:computer',
-                text: '计算机常识',
-                items: [
-                    {icon: 'line-md:question',text: '缺失的一课',link: 'https://www.criwits.top/missing/'},
-                    {
-                        icon: 'material-symbols-light:computer-outline-rounded',
-                        text: '电脑开荒网',
-                        link: 'https://www.cyhaoka.vip/',
-                    },
-                    {
-                        icon: 'logos:microsoft-windows-icon',
-                        text: '系统安装',
-                        link: '/csdiy/computer-common-knowledge/Win11re-setup/',
-                    },
-                    {
-                        icon: 'emojione-v1:dvd',
-                        text: '镜像刻录',
-                        link: '/csdiy/computer-common-knowledge/make-image/',
-                    },
-
-                ]
-            },
-            {
-                icon: '',
-                text: '实用资源',
-                items: [
-                    {
-                        icon: 'logos:element',
-                        text: '图标、组件库',
-                        link: '/csdiy/indeeded-src/icons-components/element-plus/'
-                    },
-                    {
-                        icon: 'streamline-logos:github-logo-1',
-                        text: 'CTF档案',
-                        link: 'https://github.com/CTF-Archives'
-                    },
-                    {
-                        icon: 'fluent-color:book-16',
-                        text: 'CS Books',
-                        link: 'https://github.com/forthespada/CS-Books'
-                    },
-                    {
-                        icon: 'line-md:github-loop',
-                        text: 'Awesome Courses',
-                        link: 'https://github.com/forthespada/Awsome-Courses',
+                        link: '/cplus/languagefeature/'
                     },
                 ]
             },
@@ -813,6 +737,30 @@ export const navbar = defineNavbarConfig([
                         badge: 'Java'
                     },
                     {
+                        icon: 'streamline-ultimate:java',
+                        text: 'JVM面试指南',
+                        link: '/compre-guide/interview/jvm/',
+                        badge: 'jvm'
+                    },
+                    {
+                        icon: 'streamline-freehand-color:database',
+                        text: '数据库面试指南',
+                        link: '/compre-guide/database/',
+                        badge: '数据库'
+                    },
+                    {
+                        icon: 'devicon:spring',
+                        text: 'Spring面试指南',
+                        link: '/compre-guide/interview/spring/',
+                        badge: 'spring'
+                    },
+                    {
+                        icon: 'devicon:redis',
+                        text: 'Redis面试指南',
+                        link: '/compre-guide/interview/redis/',
+                        badge: 'redis'
+                    },
+                    {
                         icon: 'material-icon-theme:codecov',
                         text: 'kafka面试指南',
                         link: '/compre-guide/interview/kafka/',
@@ -823,6 +771,12 @@ export const navbar = defineNavbarConfig([
                         text: 'Flink面试指南',
                         link: '/compre-guide/interview/flink/',
                         badge: 'Flink'
+                    },
+                    {
+                        icon: 'devicon:apachespark',
+                        text: 'Spark面试指南',
+                        link: '/compre-guide/interview/spark/',
+                        badge: 'Spark'
                     },
                     {
                         icon: 'material-icon-theme:clangd',

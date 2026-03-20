@@ -1,7 +1,7 @@
 ---
-title: CS-DIY
+title: CPLUS
 createTime: 2025/02/24 07:01:02
-permalink: /cs-diy/
+permalink: /cplus/
 ---
 编写者：[::noto:red-heart::rand777](/friends/persons/)
 

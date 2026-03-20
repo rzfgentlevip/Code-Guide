@@ -8,7 +8,7 @@ permalink: /compre-guide/interview/kafka/Kafka高级/
 createTime: 2025/09/04 11:10:04
 ---
 
-### kafka消费者分区策略
+### 1、kafka消费者分区策略
 
 #### kafka分区策略接口定义
 
@@ -21,7 +21,7 @@ public interface PartitionAssignor {
                                    Map<String, Subscription> subscriptions);
 }
 ```
-在消费者组中选择一个身份魏leader的主消费者，负责分区的分配策略计算;
+在消费者组中选择一个身份为leader的主消费者，负责分区的分配策略计算;
 
 
 #### kafka分区策略工作流程
@@ -554,7 +554,8 @@ props.put("consumer.weight", "10"); // 自定义配置
 | **所有消费者订阅相同** | RoundRobinAssignor        | 分配最均衡               |
 | **特殊业务需求**       | 自定义策略                | 灵活满足特定需求         |
 
-### Kafka重平衡（Rebalance）原理
+### 2、Kafka重平衡（Rebalance）原理
+
 #### 什么是Kafka重平衡（Rebalance）
 
 重平衡是Kafka消费者组的核心机制;
@@ -993,7 +994,7 @@ class ArchitectureOptimization {
    }
 }
 ```
-#### 去我呢提排查即优化
+#### 问题排查即优化
 ```java
 class TypicalProblems {
 
@@ -1077,7 +1078,7 @@ class TypicalProblems {
    - 关键阶段：检测→暂停→加入→分配→恢复
 
 
-### Kafka 的设计架构？
+### 3、Kafka 的设计架构？
 
 **简单的设计架构**
 
@@ -1111,7 +1112,7 @@ Kafak 总体架构图中包含多个概念:
 
 **(12)follower**: 每个分区多个副本中的"从" follower,实时从 Leader 中同步数据,保持和 leader 数据的同步。Leader 发生故障时,某个 follow 会成为新的 leader。
 
-### 介绍一下零拷贝技术
+### 4、介绍一下零拷贝技术
 
 #### 写数据到磁盘
 从 Kafka 里经常要消费数据,那么消费的时候实际上就是要从 kafka 的**磁盘文件**里**读取某条数据**然后发送给下游的消费者,如下图所示。
@@ -1126,6 +1127,8 @@ Kafak 总体架构图中包含多个概念:
 一次是从操作**系统的 cache** 里拷贝到**应用进程的缓存**里,接着又从应用程序缓存里拷贝回**操作系统的 Socket 缓存**里。
 
 而且为了进行这两次拷贝,中间还发生了好几次上下文切换,一会儿是应用程序在执行,一会儿上下文切换到操作系统来执行。所以这种方式来读取数据是比较消耗性能的。
+
+有关应用程序数据拷贝，详细流程请参考:[应用程序数据拷贝](/compre-guide/technical-blog/应用程序数据拷贝原理/)
 
 **Kafka 为了解决这个问题,在读数据的时候是引入零拷贝技术**。
 
@@ -1310,7 +1313,7 @@ graph TD
 | **系统要求**   | 所有系统         | 需要mmap支持   | Linux 2.4+   |
 | **数据修改**   | 容易             | 支持           | 不支持       |
 
-### 零拷贝技术在kafka中的应用
+### 5、零拷贝技术在kafka中的应用
 
 #### Kafka的数据流架构
 
@@ -1398,7 +1401,7 @@ Kafka日志存储的零拷贝优化
 5. 压缩：减少网络传输
 ```
 
-### 高性能高吞吐的技术实现
+### 6、高性能高吞吐的技术实现
 
 #### 页缓存技术
 
@@ -1672,7 +1675,7 @@ Kafka的高性能来自多个层次的协同优化：
 4. **架构层**：分区并行 + Leader-Follower + ISR
 5. **协议层**：高效消息格式 + 稀疏索引 + 增量编码
 
-### Kafka 分区的目的？能提供什么能力
+### 7、Kafka 分区的目的？能提供什么能力
 
 分区对于Kafka 集群的好处是:实现负载均衡。
 
@@ -2074,7 +2077,7 @@ public class ExactlyOnceProcessor {
     }
 }
 ```
-### 说一下什么是副本？
+### 8、说一下什么是副本？
 
 kafka 为了保证数据不丢失,从 `0.8.0` 版本开始引入了分区副本机制。在创建 topic 的时候指定 `replication-factor`,默认副本为 3 。
 
@@ -2087,7 +2090,7 @@ Kafka 的分区多副本架构是 Kafka 可靠性保证的核心,把消息写入
 #### 副本的类型
 
 ```java
-副本类型分类：
+副本类型分类:
 ┌─────────────────────────────────────────────────────┐
 │                     Kafka副本体系                    │
 ├─────────────────────────────────────────────────────┤
@@ -2682,7 +2685,7 @@ P（分区容错性）：
 ```
 
 
-###  Kafka消息是采用Pull模式,还是Push模式？
+###  9、Kafka消息是采用Pull模式,还是Push模式？
 
 Kafka最初考虑的问题是,cusumer应该从brokes拉取消息还是brokers将消息推送到consumer,也就是pull还push。在这方面,Kafka遵循了一种大部分消息系统共同的传统的设计:**producer将消息推送到broker,consumer从broker拉取消息**。
 
@@ -2693,7 +2696,7 @@ Pull模式的另外一个好处是consumer可以自主决定是否批量的从br
 Pull有个缺点是,如果broker没有可供消费的消息,将导致consumer不断在循环中轮询,直到新消息到t达。为了避免这点,Kafka有个参数可以让consumer阻塞知道新消息到达(当然也可以阻塞知道消息的数量达到某个特定的量这样就可以批量发。
 
 
-### 请说明Kafka相对于传统的消息传递方法有什么优势？
+### 10、请说明Kafka相对于传统的消息传递方法有什么优势？
 
 1. 高性能:单一的Kafka代理可以处理成千上万的客户端,每秒处理数兆字节的读写操作,Kafka性能远超过传统的ActiveMQ、RabbitMQ等,而且Kafka支持Batch操作
 2. 可扩展:Kafka集群可以透明的扩展,增加新的服务器进集群
@@ -2703,7 +2706,7 @@ Pull有个缺点是,如果broker没有可供消费的消息,将导致consumer不
 5. 高伸缩性: 每个主题(topic) 包含多个分区(partition),主题中的分区可以分布在不同的主机(broker)中。
 6. 持久性、可靠性: Kafka 能够允许数据的持久化存储,消息被持久化到磁盘,并支持数据备份防止数据丢失,Kafka 底层的数据存储是基于 Zookeeper 存储的,Zookeeper 我们知道它的数据能够持久存储。
 
-### Kafka与传统消息队列的区别？
+### 11、Kafka与传统消息队列的区别？
 
 在说区别的时候,我们先来看看kafka的应用场景:
 
@@ -2750,7 +2753,7 @@ Scale out:
 
 MQ支持Broker构架,消息发送给客户端时需要在中心队列排队。对路由,负载均衡或者数据持久化都有很好的支持。
 
-### Kafka判断一个节点是否还活着有那两个条件？
+### 12、Kafka判断一个节点是否还活着有那两个条件？
 
 #### ZooKeeper会话保持（Session Maintenance）
 
@@ -2882,7 +2885,7 @@ Broker3进程还在，但不响应请求
 • 结果：最终被标记为死亡
 ```
 
-### Kafa consumer是否可以消费指定分区消息？
+### 13、Kafa consumer是否可以消费指定分区消息？
 
 Kafa consumer消费消息时,向broker发出"fetch"请求去消费**特定分区的消息**,consumer指定消息在日志中的偏移量(offset),就可以消费从这个位置开始的消息,**customer拥有了offset的控制权,可以向后回滚去重新消费之前的消息**,这是很有意义的，但是这样必须使用kafka低级API去做，分区和offset的控制完全交给了应用程序;
 
@@ -3184,7 +3187,7 @@ public class SpecifyOffsetConsumer {
 └─────────────────┴────────────────────────────────┴────────────────────────────────┘
 ```
 
-### producer是否直接将数据发送到broker的leader(主节点)？
+### 14、producer是否直接将数据发送到broker的leader(主节点)？
 
 > 本质问的是kafkaz生产者发送数据流程;
 
@@ -3673,7 +3676,7 @@ public class ProducerTroubleshooting {
 ```
 
 
-### Kafka存储在硬盘上的消息格式是什么？
+### 15、Kafka存储在硬盘上的消息格式是什么？
 
 #### 分区日志文件结构
 
@@ -3983,14 +3986,14 @@ public class LogSegmentManagement {
 }
 ```
 
-### Kafka高效文件存储设计特点:
+### 16、Kafka高效文件存储设计特点:
 
 1. Kafka把topic中一个parition大文件分成多个小文件段,通过多个小文件段,就容易定期清除或删除已经消费完文件,减少磁盘占用,健儿来说就是通过一种分而治之的方法,逐步清除没有用的小文件。
 2. 通过索引信息可以快速定位message和确定response的最大大小。
 3. 通过index元数据全部映射到memory,可以避免segment file的IO磁盘操作。
 4. 通过索引文件稀疏存储,可以大幅降低index文件元数据占用空间大小。
 
-### Kafka工作流程
+### 17、Kafka工作流程
 
 1. 消息分类按不同类别,分成不同的Topic,Topic⼜又拆分成多个partition,每个partition副本均衡分散到不同的服务器器(**提高并发访问的能力**)
 2. 消费者按顺序从partition中读取,不支持随机读取数据,但可通过改变保存到zookeeper中的offset位置实现从任意位置开始读取。
@@ -4005,7 +4008,7 @@ public class LogSegmentManagement {
 11. 在JMS实现中,Topic模型基于push方式,即broker将消息推送给consumer端.不过在kafka中,采用了pull方式,即consumer在和broker建立连接之后,主动去pull(或者说fetch)消息;这种模式有些优点,首先consumer端可以根据⾃己的消费能力适时的去fetch消息并处理,且可以控制消息消费的进度(offset);此外,消费者可以良好的控制消息消费的数量,batch fetch.
 12. kafka无需记录消息是否接收成功,是否要重新发送等,所以kafka的producer是非常轻量级的,consumer端也只需要将fetch后的offset位置注册到zookeeper,所以也是非常轻量级的.
 
-### 生产者向 Kafka 发送消息的执行流程介绍一下？
+### 18、生产者向 Kafka 发送消息的执行流程介绍一下？
 
 **kafka生产者写入数据到kafka集群的流程**
 
@@ -4165,7 +4168,7 @@ public class Troubleshooting {
 ```
 
 
-### kafka 如何实现多线程的消费？
+### 19、kafka 如何实现多线程的消费？
 
 **kafka 允许同组的多个 partition 被一个 consumer 消费**,但不允许一个 partition 被同组的多个 consumer 消费。
 
@@ -4192,7 +4195,7 @@ Kafka消费的核心限制：
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 如何保证Kafka的消息有序
+### 20、如何保证Kafka的消息有序
 
 Kafka只能保证一个partition中的消息被某个consumer消费时是顺序的,事实上,从Topic角度来说, 当有多个partition时,消息仍然不是全局有序的。
 
@@ -4718,7 +4721,7 @@ public class ScenarioBasedStrategies {
 4. 根据业务重要性分层设计
 ```
 
-### kafka 如何保证数据的不重复和不丢失？
+### 21、kafka 如何保证数据的不重复和不丢失？
 
 - exactly once 模式 精确传递一次。将 offset 作为唯一 id 与消息同时处理,并且保证处理的原子性。消息只会处理一次,不丢失也不会重复。但这种方式很难做到。
 
@@ -4726,7 +4729,7 @@ public class ScenarioBasedStrategies {
 
 - 使用 exactly Once + 幂等操作,可以保证数据不重复,不丢失。exactly Once可以做到重复消费，即消息不丢失，幂等性可以做到下游只使用一次，配合起来就做到了精确一致性；
 
-### kafka如何保证端到端的数据一致性保证
+### 22、kafka如何保证端到端的数据一致性保证
 
 #### 数据丢失与重复的场景分析
 
@@ -5414,21 +5417,21 @@ public class EndToEndExactlyOnce {
 └─────────────────┴─────────────────┴─────────────────┴─────────────────┘
 ```
 
-#### **核心原则：**
+#### **核心原则**
 
 1. **生产者端**：幂等性 + 事务 + 适当重试
 2. **Broker端**：足够副本 + ISR保证 + 合理刷盘
 3. **消费者端**：手动提交 + 幂等处理 + 事务消费
 4. **端到端**：消息追踪 + 数据审计 + 监控告警
 
-### kafka如何保证对应类型数据写入相同的分区
+### 23、kafka如何保证对应类型数据写入相同的分区
 
 通过 **消息键** 和 **分区器** 来实现,分区器为`键`生成一个 `offset`,然后使用 offset 对主题分区进行取模,为消息选取分区,这样就可以保证包含同一个键的消息会被写到同一个分区上。
 
 1. 如果 `ProducerRecord` 没有指定分区,且消息的 `key 不为空`,则使用 `Hash 算法`(非加密型 Hash 函数,具备高运算性能及低碰撞率)来计算分区分配。
 2. 如果 ProducerRecord 没有指定分区,且消息的 `key 也是空`,则用 **轮询** 的方式选择一个分区。
 
-### Kafka创建Topic时如何将分区放置到不同的Broker中
+### 24、Kafka创建Topic时如何将分区放置到不同的Broker中
 
 1. 副本因子不能大于 Broker 的个数;
 2. 第一个分区(编号为0)的第一个副本放置位置是随机从 brokerList 选择的;
@@ -5438,7 +5441,7 @@ public class EndToEndExactlyOnce {
 
 
 
-### Kafka新建的分区会在哪个目录下创建
+### 25、Kafka新建的分区会在哪个目录下创建
 
 在启动 Kafka 集群之前,我们需要配置好 log.dirs 参数,其值是 Kafka 数据的存放目录,这个参数可以配置多个目录,目录之间使用逗号分隔,通常这些目录是分布在不同的磁盘上用于提高读写性能。
 

@@ -233,7 +233,7 @@ public class DynamicPartitioner implements Partitioner {
 }
 ```
 
-###### 问题2：顺序性要求
+##### 问题2：顺序性要求
 
 > 场景：相同用户的订单需要按顺序处理
 
@@ -746,6 +746,7 @@ props.put("max.poll.interval.ms", "300000");
 ##### 重复消费
 
 原因：提交偏移量失败或重平衡
+
 **解决**
 
 1. 实现幂等消费
@@ -1144,7 +1145,7 @@ class ConsumerCoordinatorConfig {
 
 - auto.commit.interval.ms 的影响： 
   - 值小：提交频繁，减少重复消费，但增加负载 
-    - 值大：减少负载，但增加重复消费风险
+  - 值大：减少负载，但增加重复消费风险
 
 #### 启动kafka消费者完整流程
 ```mermaid

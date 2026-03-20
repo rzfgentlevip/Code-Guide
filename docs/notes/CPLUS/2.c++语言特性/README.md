@@ -1,11 +1,11 @@
 ---
 title: 学习路线
 createTime: 2025/03/02 16:51:00
-permalink: /csdiy/study-path/
+permalink: /cplus/languagefeature/
 icon: ph:path-fill
 ---
 
-编写者：[::noto:red-heart::rand777](/friends/persons/) [::noto:red-heart::DKwms](/friends/persons/)
+编写者：[::noto:red-heart::bugcode](/friends/persons/)
 
 
 :::note 本文已完成，等待校对

@@ -6,7 +6,7 @@ author: bugcode
 date: 2024-11-16T00:00:00.000Z
 copyright: bugcode
 createTime: 2025/09/04 10:31:15
-permalink: /compre-guide/technical-blog/Copy-on-Write (COW) 技术深度解析/
+permalink: /compre-guide/technical-blog/Copy-on-Write(COW)技术深度解析/
 ---
 
 ## COW 核心概念
