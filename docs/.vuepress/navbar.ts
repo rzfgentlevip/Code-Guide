@@ -381,12 +381,29 @@ export const navbar = defineNavbarConfig([
             },
             {
                 icon: '/icon/path.svg',
-                text: 'C++特性',
+                text: 'C++语言特性',
                 items: [
+                    {
+                        icon: 'icon-park:file-word',
+                        text: 'Const关键字',
+                        link: '/cplus/languagefeature/const关键字详解/',
+                        badge: {type: 'info', text: '关键字特性'}
+                    },
                     {
                         icon: 'mdi:collections-bookmark',
                         text: '合集收录',
                         link: '/cplus/languagefeature/'
+                    },
+                ]
+            },
+            {
+                icon: 'ic:outline-high-quality',
+                text: '高性能c++开发',
+                items: [
+                    {
+                        icon: 'mdi:collections-bookmark',
+                        text: '合集收录',
+                        link: '/cplus/Highperformance/'
                     },
                 ]
             },
@@ -523,134 +540,6 @@ export const navbar = defineNavbarConfig([
             },
         ]
     },
-    // 大学百科 导航
-    // {
-    //     icon: '/icon/wiki.svg',
-    //     text: '大学百科',
-    //     items: [
-    //         {
-    //             icon: '/icon/email.svg',
-    //             text: '申请学生邮箱',
-    //             link: '/campus-wiki/apply-student-email/'
-    //         },
-    //         {
-    //             icon: '/icon/teacher.svg',
-    //             text: '良师赠语',
-    //             link: '/campus-wiki/teacher-talks/'
-    //         },
-    //         {
-    //             icon: 'https://colleges.chat/assets/images/favicon.webp',
-    //             text: '大学百科指北',
-    //             link: 'https://colleges.chat/',
-    //             badge: '生活'
-    //         },
-    //         {
-    //             icon: 'https://ac-wiki.org/assets/logo_clear.png',
-    //             text: 'Ac-Wiki',
-    //             link: 'https://ac-wiki.org/',
-    //             badge: '大学生的百科全书'
-    //         },
-    //         {
-    //             icon: '',
-    //             text: '',
-    //             link: '',
-    //             badge: ''
-    //         },
-    //         {
-    //             icon: 'carbon:container-software',
-    //             text: '常用软件',
-    //             items: [
-    //                 {
-    //                     icon: 'fluent-color:code-20',
-    //                     text: 'IDE',
-    //                     link: '/campus-wiki/common-software/IDE/',
-    //                     badge: '集成开发环境'
-    //                 },
-    //                 {
-    //                     icon: 'ooui:articles-rtl',
-    //                     text: '文献管理',
-    //                     link: '/campus-wiki/document-management/',
-    //                     badge: ''
-    //                 },
-    //                 {
-    //                     icon: 'twemoji:notebook-with-decorative-cover',
-    //                     text: '笔记软件',
-    //                     link: '/campus-wiki/common-softwares/note-softwares/',
-    //                 },
-    //                 {
-    //                     icon: 'vscode-icons:file-type-word',
-    //                     text: '办公软件',
-    //                     link: '/campus-wiki/common-softwares/office/MS/apply-ee/',
-    //                     badge: 'Office'
-    //                 },
-    //             ]
-    //         },
-    //         {
-    //             icon: '/icon/cert.svg',
-    //             text: '证书及技能考试',
-    //             items: [
-    //                 {
-    //                     icon: 'icon-park-twotone:six-key',
-    //                     text: '四、六级考试',
-    //                     link: '/campus-wiki/credential-skillful-exams/CET/',
-    //                     badge: 'CET、SET'
-    //                 },
-    //                 {
-    //                     icon: 'https://bm.ruankao.org.cn/asset/image/public/logo.png',
-    //                     text: '软考',
-    //                     link: '/campus-wiki/credential-skillful-exams/ruankao/',
-    //                     badge: '宇宙机，我爱考'
-    //                 },
-    //                 {
-    //                     icon: 'hugeicons:computer-programming-01',
-    //                     text: '计算机等级考试',
-    //                     link: '/campus-wiki/credential-skillful-exams/NCRE/',
-    //                     badge: '适合大学生'
-    //                 },
-    //
-    //             ]
-    //         },
-    //         {
-    //             icon: '/icon/competition.svg',
-    //             text: '竞赛指南',
-    //             items: [
-    //                 {
-    //                     icon: 'material-symbols:code',
-    //                     text: '编程竞赛',
-    //                     link: '/campus-wiki/competition/code/',
-    //                 },
-    //                 {
-    //                     icon: 'file-icons:3d-model',
-    //                     text: '数学建模',
-    //                     link: '/campus-wiki/competition/math-modeling/',
-    //                     badge: ''
-    //                 },
-    //                 {
-    //                     icon: 'mynaui:math',
-    //                     text: '纯学科竞赛',
-    //                     link: '/campus-wiki/competition/subjects/',
-    //                     badge: ''
-    //                 },
-    //                 {
-    //                     icon: 'mingcute:ai-line',
-    //                     text: '人工智能',
-    //                     link: '/campus-wiki/competition/AI-future/',
-    //                 },
-    //                 {
-    //                     icon: 'mingcute:ai-line',
-    //                     text: '网络安全',
-    //                     link: '/campus-wiki/competition/AI-future/',
-    //                 },
-    //                 {
-    //                     icon: 'game-icons:team-idea',
-    //                     text: '创新创业',
-    //                     link: '/campus-wiki/competition/innovate/',
-    //                     badge: ''
-    //                 },
-    //             ]
-    //         },
-    //     ]
-    // },
     {
         icon: '/icon/wiki.svg',
         text: '技术指引',
