@@ -5,56 +5,65 @@ permalink: /cplus/languagefeature/const关键字详解/
 icon: icon-park:file-word
 ---
 
-## Const关键字
+写在前面:
 
-## 1.const含义
+const有多种用法，分类如下:
+
+- 常变量：const 类型说明符 变量名 俗称常量；
+- 常引用：const 类型说明符 &引用名；
+- 常对象：类名 const 对象名
+- 常成员函数： 类名::fun(形参) const
+- 常数组：类型说明符 const 数组名[大小]    
+- 常指针：const 类型说明符* 指针名 ，类型说明符* const 指针名
+
+> 首先提示的是：在常变量（const 类型说明符 变量名）、常引用（const 类型说明符 &引用名）、常对象（类名 const 对象名）、 常数组（类型说明符const 数组名[大小]）， const” 与 “类型说明符”或“类名”（其实类名是一种自定义的类型说明符） 的位置可以互换。如：
+>
+> - const int a=5; 与 int const a=5; 等同
+>
+> - 类名 const 对象名 与 const 类名 对象名 等同
+
+
+## 1、const关键字含义
 
 常类型是指使用类型修饰符**const**说明的类型，常类型的变量或对象的值是不能被更新的。
 
-## 2.const作用
+## 2、const作用
 
 （1）可以定义常量
 
-```
+```c++
 const int a=100;
 ```
 
 （2）类型检查
 
-const常量与#define宏定义常量的区别：~**const常量具有类型，编译器可以进行安全检查；#define宏定义没有数据类型，只是简单的字符串替换，不能进行安全检查。**~感谢两位大佬指出这里问题，见：
-
-> https://github.com/Light-City/CPlusPlusThings/issues/5
+const常量与#define宏定义常量的区别：**const常量具有类型，编译器可以进行安全检查；#define宏定义没有数据类型，只是简单的字符串替换，不能进行安全检查**；
 
 `const` 定义的变量只有类型为整数或枚举，且以常量表达式初始化时才能作为常量表达式。其他情况下它只是一个 `const` 限定的变量，不要将与常量混淆。
 
 （3）防止修改，起保护作用，增加程序健壮性
 
-```
+```c++
 void f(const int i){
     i++; //error!
 }
 ```
 
-（4）可以节省空间，避免不必要的内存分配
+（4）**可以节省空间，避免不必要的内存分配**
 
 const定义常量从汇编的角度来看，只是给出了对应的内存地址，而不是像#define一样给出的是立即数，所以，const定义的常量在程序运行过程中只有一份拷贝，而#define定义的常量在内存中有若干个拷贝。
 
-## 3.const对象默认为文件局部变量
+## 3、const对象默认为文件局部变量
 
 注意：非const变量默认为extern。要使const变量能够在其他文件中访问，必须在文件中显式地指定它为extern。
 
 > 未被const修饰的变量在不同文件的访问
 
-```
+```c++
 // file1.cpp
 int ext
 // file2.cpp
 #include<iostream>
-/**
- * by 光城
- * compile: g++ -o file file2.cpp file1.cpp
- * execute: ./file
- */
 extern int ext;
 int main(){
     std::cout<<(ext+10)<<std::endl;
@@ -63,16 +72,11 @@ int main(){
 
 > const常量在不同文件的访问
 
-```
+```c++
 //extern_file1.cpp
 extern const int ext=12;
 //extern_file2.cpp
 #include<iostream>
-/**
- * by 光城
- * compile: g++ -o file const_file2.cpp const_file1.cpp
- * execute: ./file
- */
 extern const int ext;
 int main(){
     std::cout<<ext<<std::endl;
@@ -81,9 +85,14 @@ int main(){
 
 小结：可以发现未被const修饰的变量不需要extern显式声明！而const常量需要显式声明extern，并且需要做初始化！因为常量在定义后就不能被修改，所以定义时必须初始化。
 
-## 4.定义常量
+## 4、定义常量
 
-```
+取代了C中的宏定义，声明时必须进行初始化(!c++类中则不然）。const限制了常量的使用方式，并没有描述常量应该如何分配。如果编译器知道了某const的所有使用，它甚至可以不为该const分配空间。最简单的常见情况就是常量的值在编译时已知，而且不需要分配存储。―《C++ Program Language》
+    
+- 用const声明的变量虽然增加了分配空间，但是可以保证类型安全。
+- C标准中，const定义的常量是全局的，C++中视声明位置而定。
+
+```c++
 const int b = 10;
 b = 0; // error: assignment of read-only variable ‘b’
 const string s = "helloworld";
@@ -92,18 +101,30 @@ const int i,j=0 // error: uninitialized const ‘i’
 
 上述有两个错误，第一：b为常量，不可更改！第二：i为常量，必须进行初始化！(因为常量在定义后就不能被修改，所以定义时必须初始化。)
 
-## 5.指针与const
+## 5、指针与const
+
+使用指针时涉及到两个对象：该指针本身和被它所指的对象。将一个指针的声明用const“预先固定”将使那个对象而不是使这个指针成为常量。要将指针本身而不是被指对象声明为常量，必须使用声明运算符*const。所以出现在 * 之前的const是作为基础类型的一部分：
 
 与指针相关的const有四种：
 
-```
+```c++
 const char * a; //指向const对象的指针或者说指向常量的指针。
 char const * a; //同上
 char * const a; //指向类型对象的const指针。或者说常指针、const指针。
 const char * const a; //指向const对象的const指针。
+
+char *const cp; //到char的const指针
+char const *pc1; //到const char的指针
+const char *pc2; //到const char的指针（后两个声明是等同的）
+
+# 从右向左读的记忆方式：
+- cp is a const pointer to char. 故pc不能指向别的字符串，但可以修改其指向的字符串的内容
+- pc2 is a pointer to const char. 故*pc2的内容不可以改变，但pc2可以指向别的字符串
 ```
 
 小结：如果*const*位于`*`的左侧，则const就是用来修饰指针所指向的变量，即指针指向为常量；如果const位于`*`的右侧，*const*就是修饰指针本身，即指针本身是常量。
+
+> 且注意：允许把非 const 对象的地址赋给指向 const 对象的指针,不允许把一个 const 对象的地址赋给一个普通的、非 const 对象的指针。
 
 具体使用如下：
 
@@ -118,7 +139,7 @@ ptr是一个指向int类型const对象的指针，const定义的是int类型，�
 
 除此之外，也不能使用void`*`指针保存const对象的地址，必须使用const void`*`类型的指针保存const对象的地址。
 
-```
+```c++
 const int p = 10;
 const void * vp = &p;
 void *vp = &p; //error
@@ -128,7 +149,7 @@ void *vp = &p; //error
 
 将非const对象的地址赋给const对象的指针:
 
-```
+```c++
 const int *ptr;
 int val = 3;
 ptr = &val; //ok
@@ -138,7 +159,7 @@ ptr = &val; //ok
 
 我们不能使用指向const对象的指针修改基础对象，然而如果该指针指向了非const对象，可用其他方式修改其所指的对象。可以修改const指针所指向的值的，但是不能通过const对象指针来进行而已！如下修改：
 
-```
+```c++
 int *ptr1 = &val;
 *ptr1=4;
 cout<<*ptr<<endl;
@@ -152,7 +173,7 @@ cout<<*ptr<<endl;
 
 const指针必须进行初始化，且const指针的值不能修改。
 
-```
+```c++
 #include<iostream>
 using namespace std;
 int main(){
@@ -169,7 +190,7 @@ int main(){
 
 最后，当把一个const常量的地址赋值给ptr时候，由于ptr指向的是一个变量，而不是const常量，所以会报错，出现：const int`*` -> int `*`错误！
 
-```
+```c++
 #include<iostream>
 using namespace std;
 int main(){
@@ -185,30 +206,39 @@ int main(){
 
 理解完前两种情况，下面这个情况就比较好理解了：
 
-```
+```c++
 const int p = 3;
 const int * const ptr = &p; 
 ```
 
 ptr是一个const指针，然后指向了一个int 类型的const对象。
 
-## 6.函数中使用const
+## 6、函数中使用const
 
-> cost修饰函数返回值
+将函数传入参数声明为const，以指明使用这种参数仅仅是为了效率的原因，而不是想让调用函数能够修改对象的值。同理，将指针参数声明为const，函数将不修改由这个参数所指的对象。
+
+通常修饰指针参数和引用参数：
+
+- void Fun( const A *in); //修饰指针型传入参数
+- void Fun(const A &in); //修饰引用型传入参数
+
+### cost修饰函数返回值
 
 这个跟const修饰普通变量以及指针的含义基本相同：
 
 （1）const int
 
-```
+```c++
 const int func1();
 ```
 
 这个本身无意义，因为参数返回本身就是赋值给其他的变量！
 
+可以阻止用户修改返回值。返回值也要相应的付给一个常量或常指针。
+
 （2）const int*
 
-```
+```c++
 const int* func2();
 ```
 
@@ -216,28 +246,28 @@ const int* func2();
 
 （3）int *const
 
-```
+```c++
 int *const func2();
 ```
 
 指针本身不可变。
 
-> const修饰函数参数
+### const修饰函数参数
 
 （1）传递过来的参数及指针本身在函数内不可变，无意义！
 
-```
+```c++
 void func(const int var); // 传递过来的参数不可变
 void func(int *const var); // 指针本身不可变
 ```
 
-表明参数在函数体内不能被修改，但此处没有任何意义，var本身就是形参，在函数内不会改变。包括传入的形参是指针也是一样。
+表明参数在函数体内不能被修改，但此处没有任何意义，var本身就是形参，传递到函数中会创建副本，在函数内不会改变。包括传入的形参是指针也是一样。
 
 输入参数采用“值传递”，由于函数将自动产生临时变量用于复制该参数，该输入参数本来就无需保护，所以不要加const 修饰。
 
 （2）参数指针所指内容为常量不可变
 
-```
+```c++
 void StringCopy(char *dst, const char *src);
 ```
 
@@ -245,28 +275,22 @@ void StringCopy(char *dst, const char *src);
 
 （3）参数为引用，为了增加效率同时防止修改。
 
-```
+```c++
 void func(const A &a)
 ```
 
-对于非内部数据类型的参数而言，象void func(A a) 这样声明的函数注定效率比较低。因为函数体内将产生A 类型
+对于非内部数据类型的参数而言，象void func(A a) 这样声明的函数注定效率比较低。因为函数体内将产生A 类型的临时对象用于复制参数a，而临时对象的构造、复制、析构过程都将消耗时间。
 
-的临时对象用于复制参数a，而临时对象的构造、复制、析构过程都将消耗时间。
+为了提高效率，可以将函数声明改为void func(A &a)，因为“引用传递”仅借用一下参数的别名而已，不需要产生临时对象。但是函数void func(A &a) 存在一个缺点：
 
-为了提高效率，可以将函数声明改为void func(A &a)，因为“引用传递”仅借用一下参数的别名而已，不需要产生临
+- “引用传递”有可能改变参数a，这是我们不期望的。解决这个问题很容易，加const修饰即可，因此函数最终成为:void func(const A &a)。
 
-时对象。但是函数void func(A &a) 存在一个缺点：
+以此类推，是否应将void func(int x) 改写为void func(const int &x)，以便提高效率？完全没有必要，因为内部数据类型的参数不存在构造、析构的过程，而复制也非常快，“值传递”和“引用传递”的效率几乎相当。
 
-“引用传递”有可能改变参数a，这是我们不期望的。解决这个问题很容易，加const修饰即可，因此函数最终成为
+小结：
 
-void func(const A &a)。
-
-以此类推，是否应将void func(int x) 改写为void func(const int &x)，以便提高效率？完全没有必要，因为内部数
-
-据类型的参数不存在构造、析构的过程，而复制也非常快，“值传递”和“引用传递”的效率几乎相当。
-
-小结：对于非内部数据类型的输入参数，应该将“值传递”的方式改为“const 引用传递”，目的是提高效率。例如将void func(A a) 改为void func(const A &a)。
-对于内部数据类型的输入参数，不要将“值传递”的方式改为“const 引用传递”。否则既达不到提高效率的目的，又降低了函数的可理解性。例如void func(int x) 不应该改为void func(const int &x)。
+1. 对于非内部数据类型的输入参数，应该将“值传递”的方式改为“const 引用传递”，目的是提高效率。例如将void func(A a) 改为void func(const A &a)。
+2. 对于内部数据类型的输入参数，不要将“值传递”的方式改为“const 引用传递”。否则既达不到提高效率的目的，又降低了函数的可理解性。例如void func(int x) 不应该改为void func(const int &x)。
 
 以上解决了两个面试问题：
 
@@ -274,19 +298,13 @@ void func(const A &a)。
 
 （2）如果写的函数需要传入的参数是一个复杂类型的实例，传入值参数或者引用参数有什么区别，什么时候需要为传入的引用参数加上const。
 
-## 7.类中使用const
+## 7、类中使用const
 
-在一个类中，任何不会修改数据成员的函数都应该声明为const类型。如果在编写const成员函数时，不慎修改
-
-数据成员，或者调用了其它非const成员函数，编译器将指出错误，这无疑会提高程序的健壮性。使用const关
-
-字进行说明的成员函数，称为常成员函数。只有常成员函数才有资格操作常量或常对象，没有使用const关键字
-
-明的成员函数不能用来操作常对象。
+在一个类中，任何不会修改数据成员的函数都应该声明为const类型。如果在编写const成员函数时，不慎修改数据成员，或者调用了其它非const成员函数，编译器将指出错误，这无疑会提高程序的健壮性。使用const关字进行说明的成员函数，称为**常成员函数**。**只有常成员函数才有资格操作常量或常对象**，没有使用const关键字明的成员函数不能用来操作常对象。
 
 对于类中的const成员变量必须通过初始化列表进行初始化，如下所示：
 
-```
+```c++
 class Apple
 {
 private:
@@ -296,6 +314,7 @@ public:
     const int apple_number;
 };
 
+// 使用初始化列表进行初始化
 Apple::Apple(int i):apple_number(i)
 {
 
@@ -306,7 +325,7 @@ const对象只能访问const成员函数,而非const对象可以访问任意的�
 
 例如：
 
-```
+```c++
 //apple.cpp
 class Apple
 {
@@ -372,19 +391,19 @@ take func 100
 
 第一：将常量定义与static结合，也就是：
 
-```
+```c++
 static const int apple_number
 ```
 
 第二：在外面初始化：
 
-```
+```c++
 const int Apple::apple_number=10;
 ```
 
 当然，如果你使用c++11进行编译，直接可以在定义出初始化，可以直接写成：
 
-```
+```c++
 static const int apple_number=10;
 或者
 const int apple_number=10;
@@ -400,14 +419,27 @@ const int apple_number=10;
 
 在类中声明：
 
-```
+```c++
 static int ap;
 ```
 
 在类实现文件中使用：
 
-```
+```c++
 int Apple::ap=666
 ```
 
 对于此项，c++11不能进行声明并初始化，也就是上述使用方法。
+
+
+- const对象只能访问const成员函数，而非const对象可以访问任意的成员函数，包括const成员函数；
+- const对象的成员是不能修改的，而通过指针维护的对象确实可以修改的；
+- const成员函数不可以修改对象的数据，不管对象是否具有const性质。编译时以是否修改成员数据为依据进行检查。
+
+
+## 8、const关键字使用原则
+
+1. 默认使用const：除非需要修改，否则都加const
+2. const正确性：const对象只调用const成员函数
+3. 避免魔法数字：使用const常量替代硬编码数字
+4. 常量引用参数：传递大对象时使用const引用
