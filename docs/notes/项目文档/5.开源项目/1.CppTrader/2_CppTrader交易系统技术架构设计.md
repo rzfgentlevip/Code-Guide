@@ -2,1304 +2,713 @@
 title: 2、CppTrader交易系统技术架构设计
 createTime: 2026/03/23 11:27:45
 permalink: /project-docs/Opensource/cpptrader/CppTrader交易系统技术架构设计/
-icon: arcticons:home-finance
+icon: streamline-ultimate-color:responsive-design-1
 order: 2
 ---
 
 
-# C++类
+本章主要通过源码阅读，解读一下CppTrader项目的内部架构设计，主要包括以下几个模块:
 
-## 友元
+1. NASDAQ ITCH协议处理器；
 
-```shell
+## NASDAQ ITCH协议处理器
 
-https://jishuzhan.net/article/1816013892325740545
-```
+在了解ITCH协议处理器之前，首先需要了解以下ITCH协议前置知识：[ITCH协议参考](/project-docs/Opensource/cpptrader/交易系统概念介绍/#ithc协议)
 
-## 可以存在的函数
-
-### 普通成员函数
-
-### const成员函数
+### ITCH处理器头文件设计
 
 ```c++
-class MyClass {
-private:
-    int data;
-    mutable int cache;  // mutable成员即使在const函数中也可修改
-    
+#ifndef CPPTRADER_ITCH_HANDLER_H
+#define CPPTRADER_ITCH_HANDLER_H
+
+#include "utility/endian.h"
+#include "utility/iostream.h"
+
+#include <vector>
+
+namespace CppTrader {
+/*!
+    \namespace CppTrader::ITCH
+    \brief ITCH protocol definitions
+*/
+namespace ITCH {
+
+//! System Event Message 系统事件消息
+struct SystemEventMessage{};
+//! Stock Directory Message
+struct StockDirectoryMessage{};
+//! Stock Trading Action Message
+struct StockTradingActionMessage{};
+//! Reg SHO Short Sale Price Test Restricted Indicator Message
+struct RegSHOMessage{};
+//! Market Participant Position Message
+struct MarketParticipantPositionMessage{};
+//! MWCB Decline Level Message
+struct MWCBDeclineMessage{};
+//! MWCB Status Message
+struct MWCBStatusMessage{};
+//! IPO Quoting Period Update Message
+struct IPOQuotingMessage{};
+//! Add Order Message
+struct AddOrderMessage{};
+//! Add Order with MPID Attribution Message
+struct AddOrderMPIDMessage{};
+//! Order Executed Message
+struct OrderExecutedMessage{};
+//! Order Executed With Price Message
+struct OrderExecutedWithPriceMessage{};
+//! Order Cancel Message
+struct OrderCancelMessage{};
+//! Order Delete Message
+struct OrderDeleteMessage{};
+//! Order Replace Message
+struct OrderReplaceMessage{};
+//! Trade Message
+struct TradeMessage{};
+//! Cross Trade Message
+struct CrossTradeMessage{};
+//! Broken Trade Message
+struct BrokenTradeMessage{};
+//! Net Order Imbalance Indicator (NOII) Message
+struct NOIIMessage{};
+//! Retail Price Improvement Indicator (RPII) Message
+struct RPIIMessage{};
+//! Limit Up – Limit Down (LULD) Auction Collar Message
+struct LULDAuctionCollarMessage{};
+//! Unknown message
+struct UnknownMessage{};
+//! NASDAQ ITCH handler class
+/*!
+    NASDAQ ITCH handler is used to parse NASDAQ ITCH protocol and handle its
+    messages in special handlers.
+
+    NASDAQ ITCH protocol specification:
+    http://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification.pdf
+
+    NASDAQ ITCH protocol examples:
+    https://emi.nasdaq.com/ITCH
+
+    Not thread-safe.
+*/
+class ITCHHandler
+{
 public:
-    // const成员函数 - 不修改对象状态（除了mutable成员）
-    int getData() const {
-        cache++;  // ✅ 可以修改mutable成员
-        // data++;  // ❌ 错误！不能修改普通成员
-        return data;
-    }
-    
-    // 非const成员函数
-    void setData(int d) {
-        data = d;  // ✅ 可以修改
-    }
-    
-    // const和non-const重载
-    const int& operator[](int index) const { return data; }  // 用于const对象
-    int& operator[](int index) { return data; }              // 用于非const对象
+    ITCHHandler() { Reset(); }
+    ITCHHandler(const ITCHHandler&) = delete;
+    ITCHHandler(ITCHHandler&&) = delete;
+    virtual ~ITCHHandler() = default;
+
+    ITCHHandler& operator=(const ITCHHandler&) = delete;
+    ITCHHandler& operator=(ITCHHandler&&) = delete;
+    bool Process(void* buffer, size_t size);
+    bool ProcessMessage(void* buffer, size_t size);
+    //! Reset ITCH handler
+    void Reset();
+
+protected:
+    // Message handlers 虚函数 可以被子类重写
+    virtual bool onMessage(const SystemEventMessage& message) { return true; }
+    virtual bool onMessage(const StockDirectoryMessage& message) { return true; }
+    virtual bool onMessage(const StockTradingActionMessage& message) { return true; }
+    virtual bool onMessage(const RegSHOMessage& message) { return true; }
+    virtual bool onMessage(const MarketParticipantPositionMessage& message) { return true; }
+    virtual bool onMessage(const MWCBDeclineMessage& message) { return true; }
+    virtual bool onMessage(const MWCBStatusMessage& message) { return true; }
+    virtual bool onMessage(const IPOQuotingMessage& message) { return true; }
+    virtual bool onMessage(const AddOrderMessage& message) { return true; }
+    virtual bool onMessage(const AddOrderMPIDMessage& message) { return true; }
+    virtual bool onMessage(const OrderExecutedMessage& message) { return true; }
+    virtual bool onMessage(const OrderExecutedWithPriceMessage& message) { return true; }
+    virtual bool onMessage(const OrderCancelMessage& message) { return true; }
+    virtual bool onMessage(const OrderDeleteMessage& message) { return true; }
+    virtual bool onMessage(const OrderReplaceMessage& message) { return true; }
+    virtual bool onMessage(const TradeMessage& message) { return true; }
+    virtual bool onMessage(const CrossTradeMessage& message) { return true; }
+    virtual bool onMessage(const BrokenTradeMessage& message) { return true; }
+    virtual bool onMessage(const NOIIMessage& message) { return true; }
+    virtual bool onMessage(const RPIIMessage& message) { return true; }
+    virtual bool onMessage(const LULDAuctionCollarMessage& message) { return true; }
+    virtual bool onMessage(const UnknownMessage& message) { return true; }
+
+private:
+    // _size：当前正在处理的消息的总长度（0 表示等待新消息）
+    size_t _size;
+    // _cache：std::vector<uint8_t> 类型的缓存，用于存储不完整的消息
+    std::vector<uint8_t> _cache;
+
+    bool ProcessSystemEventMessage(void* buffer, size_t size);
+    bool ProcessStockDirectoryMessage(void* buffer, size_t size);
+    bool ProcessStockTradingActionMessage(void* buffer, size_t size);
+    bool ProcessRegSHOMessage(void* buffer, size_t size);
+    bool ProcessMarketParticipantPositionMessage(void* buffer, size_t size);
+    bool ProcessMWCBDeclineMessage(void* buffer, size_t size);
+    bool ProcessMWCBStatusMessage(void* buffer, size_t size);
+    bool ProcessIPOQuotingMessage(void* buffer, size_t size);
+    bool ProcessAddOrderMessage(void* buffer, size_t size);
+    bool ProcessAddOrderMPIDMessage(void* buffer, size_t size);
+    bool ProcessOrderExecutedMessage(void* buffer, size_t size);
+    bool ProcessOrderExecutedWithPriceMessage(void* buffer, size_t size);
+    bool ProcessOrderCancelMessage(void* buffer, size_t size);
+    bool ProcessOrderDeleteMessage(void* buffer, size_t size);
+    bool ProcessOrderReplaceMessage(void* buffer, size_t size);
+    bool ProcessTradeMessage(void* buffer, size_t size);
+    bool ProcessCrossTradeMessage(void* buffer, size_t size);
+    bool ProcessBrokenTradeMessage(void* buffer, size_t size);
+    bool ProcessNOIIMessage(void* buffer, size_t size);
+    bool ProcessRPIIMessage(void* buffer, size_t size);
+    bool ProcessLULDAuctionCollarMessage(void* buffer, size_t size);
+    bool ProcessUnknownMessage(void* buffer, size_t size);
+
+    template <size_t N>
+    size_t ReadString(const void* buffer, char (&str)[N]);
+    size_t ReadTimestamp(const void* buffer, uint64_t& value);
 };
+
+/*! \example itch_handler.cpp NASDAQ ITCH handler example */
+
+} // namespace ITCH
+} // namespace CppTrader
+
+#include "itch_handler.inl"
+
+#endif // CPPTRADER_ITCH_HANDLER_H
+
 ```
 
-### 静态成员函数
+1、消息类型
+
+ITCH协议中有不同类型的消息 [ITCH协议消息类型](/project-docs/Opensource/cpptrader/交易系统概念介绍/#消息类型) ,因此通过struct数据结构类定义不同类型的消息实体对象，例如`SystemEventMessage`表示系统事件消息;
+
+2、协议处理器 ITCHHandler
+
+协议处理器主要用来读取并且解析ITCH协议中不同的消息，其中设计了两个私有属性:`_size`表示当前处理消息的总长度，`_cache`:用于存储不完整的消息；
+
+`onMessage`虚函数，不同用户可以对消息的处理可以灵活的自定义，通过重写`onMessage`函数，实现对消息的自定义处理，在本项目中，`MyITCHHandler`自定义处理器通过共有继承`ITCHHandler`处理器，然后重写`onMessage`函数来输出读取到的事件消息;
 
 ```c++
-class MyClass {
-private:
-    static int totalCount;      // 静态成员变量
-    int instanceId;
-    
-public:
-    MyClass() {
-        instanceId = ++totalCount;
-    }
-    
-    // 静态成员函数
-    static int getTotalCount() {
-        // 只能访问静态成员
-        return totalCount;
-        // return instanceId;  // ❌ 错误！不能访问非静态成员
-    }
-    
-    // 静态成员函数不能是const（因为static不属于某个对象）
-    // static void func() const;  // ❌ 错误！
-};
+bool onMessage(const SystemEventMessage& message) override { 
+    return OutputMessage(message); 
+}
 
-int MyClass::totalCount = 0;
+static bool OutputMessage(const TMessage& message)
+ {
+    std::cout << message << std::endl;
+    return true;
+}
 ```
 
-### 默认构造函数【编译器会自动生成】
+`Process*` 协议处理器中，对ITCH协议中不同的消息，调用不同的方法进行解析处理，解析方法以`Process*`开头的方法;
 
-### 拷贝构造函数
 
-```C++
-class MyClass {
-private:
-    int* data;
-    size_t size;
-    
-public:
-    // 拷贝构造函数
-    MyClass(const MyClass& other) : size(other.size) {
-        cout << "Copy constructor" << endl;
-        data = new int[size];
-        for (size_t i = 0; i < size; i++) {
-            data[i] = other.data[i];  // 深拷贝
-        }
-    }
-    
-    // 拷贝构造函数可以被删除
-    MyClass(const MyClass&) = delete;
-};
-```
+在`itch_hander.cpp`文件中，对ITCH处理器的各种方法进行实现，应用中也实现了对处理器性能测试案例，请参考:[ITCH处理器基准测试](/project-docs/Opensource/cpptrader/项目测试/#nasdaq-itch-handler)
 
-## 移动构造函数
 
-移动构造函数可以优化对象复制的性能
 
-```C==
-class MyClass {
-private:
-    int* data;
-    size_t size;
-    
-public:
-    // 移动构造函数
-    MyClass(MyClass&& other) noexcept 
-        : data(other.data), size(other.size) {
-        cout << "Move constructor" << endl;
-        other.data = nullptr;  // 源对象置空
-        other.size = 0;
-    }
-};
-```
+### Process 方法实现
 
-| 特性       | 拷贝构造函数                  | 移动构造函数             |
-| :--------- | :---------------------------- | :----------------------- |
-| 语法       | `LevelNode(const LevelNode&)` | `LevelNode(LevelNode&&)` |
-| 参数类型   | const左值引用                 | 右值引用                 |
-| 源对象状态 | 保持不变                      | 被修改（资源被偷走）     |
-| 性能       | 慢（深拷贝）                  | 快（指针转移）           |
-| 异常安全   | 强（原对象不变）              | 弱（原对象被修改）       |
-| 使用场景   | 需要保留原对象                | 原对象即将销毁           |
 
-### 拷贝赋值运算符
 
-```C++
-class MyClass {
-private:
-    int* data;
-    size_t size;
-    
-public:
-    // 拷贝赋值运算符
-    MyClass& operator=(const MyClass& other) {
-        cout << "Copy assignment operator" << endl;
-        
-        if (this != &other) {  // 自赋值检查
-            // 先分配新资源
-            int* newData = new int[other.size];
-            for (size_t i = 0; i < other.size; i++) {
-                newData[i] = other.data[i];
+```c++
+/*!
+    \file itch_handler.cpp
+    \brief NASDAQ ITCH handler implementation
+    \author Ivan Shynkarenka
+    \date 21.07.2017
+    \copyright MIT License
+*/
+
+#include "trader/providers/nasdaq/itch_handler.h"
+
+#include <cassert>
+
+namespace CppTrader {
+namespace ITCH {
+
+      /**
+     * 功能：处理从网络接收的原始数据流，解析出完整的ITCH消息
+     * 
+     * ITCH协议特点：
+     * - 每条消息以2字节长度字段开头（大端序）
+     * - 消息是流式的，可能被拆分成多个TCP包传输
+     * - 需要处理粘包和拆包问题
+     * 
+     * 状态管理：
+     * - _size: 当前正在解析的消息总长度（0表示未开始解析新消息）
+     * - _cache: 缓存不完整的消息数据
+     */
+bool ITCHHandler::Process(void* buffer, size_t size)
+{
+    /**
+     * size_t index = 0;
+        size_t：无符号整数类型，保证足够大以表示内存中任意对象的大小
+
+        用途：作为游标，记录当前解析到数据流的哪个位置
+
+        典型值：在 64 位系统上是 8 字节，在 32 位系统上是 4 字节
+     */
+    // 解析游标：记录当前已处理到的位置
+    size_t index = 0;
+    // 将输入缓冲区转换为字节指针，便于逐字节操作
+    uint8_t* data = (uint8_t*)buffer;
+
+    /**
+     * ITCH 消息格式：每条消息以 2 字节长度字段开头（小端序）
+
+        为什么是 3 字节？：需要至少 2 字节获取长度，加上可能需要缓存
+
+        缓存状态：
+
+        _cache.size() == 0 且 remaining < 3：数据不足，先缓存 1 字节
+
+        _cache.size() == 1：已有 1 字节缓存，继续收集
+     */
+
+    /**
+     * 主循环：处理输入缓冲区中的所有数据
+     * 使用while循环而不是for，因为处理过程中可能跳过不定长度
+     */
+    while (index < size)
+    {
+         // ==================== 阶段1：读取消息长度 ====================
+        // 当前没有正在解析的消息，需要读取新消息的长度字段
+        if (_size == 0)
+        {
+            // 输入缓冲区中剩余未处理的数据量
+            size_t remaining = size - index;
+
+            /**
+             * 情况A：长度字段不完整，需要缓存
+             * 
+             * 触发条件：
+             * 1. _cache为空 且 剩余数据不足3字节（2字节长度+至少1字节数据）
+             * 2. _cache已有1字节（说明上次收到了1字节，这次继续收集）
+             * 
+             * 为什么是3字节？因为最少需要2字节长度+1字节消息类型才能判断
+             */
+            // Collect message size into the cache
+            if (((_cache.size() == 0) && (remaining < 3)) || (_cache.size() == 1))
+            {
+                _cache.push_back(data[index++]);
+                continue;
             }
-            
-            // 释放旧资源
-            delete[] data;
-            
-            // 赋值
-            data = newData;
-            size = other.size;
+
+            /**
+             * 情况B：有足够的数据读取消息长度
+             */
+            // Read a new message size
+            uint16_t message_size;
+            if (_cache.empty())
+            {
+                /**
+                 * 子情况B1：没有缓存数据，直接从输入缓冲区读取
+                 * ReadBigEndian: 将大端序的2字节转换为本机字节序
+                 * 注意：这里index会在ReadBigEndian内部自增2
+                 */
+                // Read the message size directly from the input buffer
+                index += CppCommon::Endian::ReadBigEndian(&data[index], message_size);
+            }
+            else
+            {
+                 /**
+                 * 子情况B2：有缓存数据（说明之前收到了不完整的长度字段）
+                 * 从缓存中读取长度字段，然后清空缓存
+                 */
+                // Read the message size from the cache
+                CppCommon::Endian::ReadBigEndian(_cache.data(), message_size);
+
+                // Clear the cache
+                _cache.clear();
+            }
+            // 保存当前消息的总长度，进入下一阶段
+            _size = message_size;
         }
-        
-        return *this;  // 返回自身引用
-    }
-};
-```
 
-### 移动赋值运算符（C++11）
+         // ==================== 阶段2：读取消息体 ====================
+        // 有正在解析的消息（_size > 0），需要收集完整的消息体
+        // Read a new message
+        if (_size > 0)
+        {
+            size_t remaining = size - index;// 剩余未处理的数据量
 
-```C++
-class MyClass {
-private:
-    int* data;
-    size_t size;
-    
-public:
-    // 移动赋值运算符
-    MyClass& operator=(MyClass&& other) noexcept {
-        cout << "Move assignment operator" << endl;
-        
-        if (this != &other) {
-            delete[] data;  // 释放自己的资源
-            
-            data = other.data;  // 偷取对方的资源
-            size = other.size;
-            
-            other.data = nullptr;  // 对方置空
-            other.size = 0;
+              /**
+             * 情况A：消息体不完整，需要缓存
+             */
+            // Complete or place the message into the cache
+            if (!_cache.empty())
+            {
+                /**
+                 * 子情况A1：之前已有部分缓存（消息体被拆包了）
+                 * tail = 还需要多少字节才能完成当前消息
+                 * tail = 消息总长度 - 已缓存长度
+                 */
+                size_t tail = _size - _cache.size();
+                if (tail > remaining)
+                    tail = remaining;
+                      // 将新数据追加到缓存末尾
+                _cache.insert(_cache.end(), &data[index], &data[index + tail]);
+                index += tail;
+                // 如果缓存中的数据仍然不足完整消息，继续等待下次调用
+                if (_cache.size() < _size)
+                    continue;
+            }
+            /**
+                 * 子情况A2：没有缓存，但剩余数据不够完整消息
+                 * 这种情况通常发生在：刚好解析完上一条消息，新消息长度很大
+                 * 当前TCP包只包含消息的开头部分
+                 */
+            else if (_size > remaining)
+            {
+                _cache.reserve(_size);// 预分配内存，避免多次扩容
+                // 将剩余所有数据都放入缓存
+                _cache.insert(_cache.end(), &data[index], &data[index + remaining]);
+                index += remaining;
+                continue;
+            }
+            /**
+             * 情况B：有完整的消息可以处理
+             */
+            // Process the current message
+            if (_cache.empty())
+            {
+                 /**
+                 * 子情况B1：消息完整且在输入缓冲区中是连续的
+                 * 直接处理输入缓冲区中的消息数据
+                 */
+                // Process the current message size directly from the input buffer
+                if (!ProcessMessage(&data[index], _size))
+                    return false;
+                index += _size;
+            }
+            else
+            {
+                /**
+                 * 子情况B2：消息数据来自缓存（之前不完整的数据）
+                 * 处理缓存中的完整消息
+                 */
+                // Process the current message size directly from the cache
+                if (!ProcessMessage(_cache.data(), _size))
+                    return false;
+
+                // Clear the cache                // 清空缓存，准备处理下一条消息
+
+                _cache.clear();
+            }
+            /**
+             * 重置消息长度，表示当前消息已处理完毕
+             * 循环将继续，处理下一条消息
+             */
+            // Process the next message
+            _size = 0;
         }
-        
-        return *this;
     }
-};
-```
 
-### 析构函数
-
-```c++
-class MyClass {
-private:
-    int* data;
-    
-public:
-    MyClass() {
-        data = new int[100];
-    }
-    
-    // 析构函数
-    ~MyClass() {
-        cout << "Destructor" << endl;
-        delete[] data;  // 释放资源
-    }
-    
-    // 虚析构函数（用于多态基类）
-    virtual ~MyClass() = default;
-};
-```
-
-### 运算符重载函数
-
-
-
-### 总结
-
-| 类别           | 函数类型       | 主要特点                       |
-| :------------- | :------------- | :----------------------------- |
-| **基础函数**   | 普通成员函数   | 可访问所有成员，有this指针     |
-|                | const成员函数  | 不修改对象状态（mutable除外）  |
-|                | static成员函数 | 无this指针，只能访问static成员 |
-| **特殊函数**   | 构造函数       | 对象创建时调用                 |
-|                | 析构函数       | 对象销毁时调用                 |
-|                | 拷贝构造/赋值  | 深拷贝资源                     |
-|                | 移动构造/赋值  | 转移资源所有权                 |
-| **运算符重载** | 算术运算符     | +, -, *, /等                   |
-|                | 比较运算符     | ==, <, >等                     |
-|                | 下标运算符     | []                             |
-|                | 函数调用运算符 | ()                             |
-|                | 类型转换运算符 | operator T()                   |
-| **多态相关**   | 虚函数         | 动态绑定                       |
-|                | 纯虚函数       | 抽象接口                       |
-|                | final函数      | 禁止重写                       |
-| **特殊用途**   | 友元函数       | 访问私有成员                   |
-|                | 内联函数       | 减少调用开销                   |
-|                | constexpr函数  | 编译时计算                     |
-|                | 委托构造函数   | 构造函数复用                   |
-|                | noexcept函数   | 异常规范                       |
-| **C++20+**     | 三路比较       | <=>运算符                      |
-|                | consteval      | 强制编译时执行                 |
-
-
-## 拷贝赋值和移动赋值的区别
-
-| 特性       | 拷贝赋值                  | 移动赋值             |
-| :--------- | :------------------------ | :------------------- |
-| 签名       | `operator=(const Order&)` | `operator=(Order&&)` |
-| 参数类型   | const左值引用             | 右值引用             |
-| 源对象状态 | 保持不变                  | 被修改（置空）       |
-| 资源处理   | 深拷贝                    | 资源转移             |
-| 性能       | 可能较慢（需要分配资源）  | 通常很快（指针交换） |
-
-## c++项目的组织结构
-
-```C++
-// 项目结构示例
-project/
-├── include/
-│   ├── Math/
-│   │   ├── Vector3.h      // 接口声明
-│   │   ├── Vector3.inl    // 内联实现
-│   │   ├── Matrix4.h
-│   │   └── Matrix4.inl
-│   └── Game/
-│       ├── Player.h
-│       └── Player.inl
-└── src/
-    ├── Math/
-    │   └── Vector3.cpp    // 非内联函数实现
-    └── Game/
-        └── Player.cpp
-```
-
-## 避免ODR违反的核心要点
-
-| 场景           | 正确做法                                                  |
-| :------------- | :-------------------------------------------------------- |
-| **非内联函数** | 在.h中声明，在.cpp中定义                                  |
-| **内联函数**   | 在.h或.inl中定义（使用inline关键字）                      |
-| **模板**       | 全部放在.h或.inl中（隐式inline）                          |
-| **全局变量**   | 使用extern声明，在一个.cpp中定义；或使用inline变量(C++17) |
-| **静态成员**   | 在类内声明，在一个.cpp中定义                              |
-| **const变量**  | 可以在头文件中定义（有内部链接）                          |
-
-
-
-**使用.inl文件的优势**：
-
-- ✅ 将接口和实现分离
-- ✅ 使用inline避免ODR违反
-- ✅ 保持头文件清晰
-- ✅ 便于管理模板和内联函数
-- ✅ 提高编译速度
-
-
-
-## c++中assert关键字
-
-assert 是 C/C++ 中的一个运行时断言宏，用于在调试阶段检查"应该永远为真"的条件。
-
-**基本用法**
-
-```c++
-#include <cassert>  // C++ 方式
-// 或 #include <assert.h>  // C 方式
-
-int divide(int a, int b) {
-    assert(b != 0);  // 如果 b == 0，程序终止
-    return a / b;
+    return true;
 }
 
-int main() {
-    divide(10, 2);  // OK
-    divide(10, 0);  // ❌ 触发 assert
-    return 0;
+/**
+ * 开始处理读取的数据
+ */
+bool ITCHHandler::ProcessMessage(void* buffer, size_t size)
+{
+    // Message is empty
+    if (size == 0)
+        return false;
+
+    uint8_t* data = (uint8_t*)buffer;
+
+    switch (*data)
+    {
+        // SystemEventMessage 消息类型为S
+        case 'S': //系统事件消息，标识市场或数据源的启动、结束等状态
+            return ProcessSystemEventMessage(data, size);
+        // StockDirectoryMessage 消息类型为R
+        case 'R': //股票目录消息，提供股票的基本信息和交易状态。 
+            return ProcessStockDirectoryMessage(data, size);
+        case 'H': //股票交易行动消息，指示某支股票的交易状态（如暂停、恢复）
+            return ProcessStockTradingActionMessage(data, size);
+        case 'Y': //Reg SHO限制消息，根据Reg SHO规则指示股票的卖空状态。
+            return ProcessRegSHOMessage(data, size);
+        case 'L'://市场参与者头寸消息，标识特定市场参与者在某股票上的持仓状态
+            return ProcessMarketParticipantPositionMessage(data, size);
+        case 'V'://市场-wide熔断机制（MWCB）下跌区间消息。
+            return ProcessMWCBDeclineMessage(data, size);
+        case 'W'://市场-wide熔断机制（MWCB）状态消息。
+            return ProcessMWCBStatusMessage(data, size);
+        case 'K'://IPO报价时段更新消息。   
+            return ProcessIPOQuotingMessage(data, size);
+        case 'A': //添加订单消息（无MPID归属），表示一个新的限价订单进入市场。
+            return ProcessAddOrderMessage(data, size);
+        case 'F'://添加订单消息（有MPID归属），与`A`类似，但包含了执行经纪商的ID
+            return ProcessAddOrderMPIDMessage(data, size);
+        case 'E'://订单执行消息，表示订单部分或全部成交。    
+            return ProcessOrderExecutedMessage(data, size);
+        case 'C'://订单以指定价格执行消息，用于成交价与原显示价不同的情况（如非显示订单执行）。
+            return ProcessOrderExecutedWithPriceMessage(data, size);
+        case 'X'://订单取消消息，表示订单被部分取消（余量更新）。
+            return ProcessOrderCancelMessage(data, size);
+        case 'D'://订单删除消息，表示订单被完全取消
+            return ProcessOrderDeleteMessage(data, size);
+        case 'U'://订单替换消息，表示一个订单被修改（如数量或价格变更）。
+            return ProcessOrderReplaceMessage(data, size);
+        case 'P'://非交叉交易消息，报告常规撮合产生的成交
+            return ProcessTradeMessage(data, size);
+        case 'Q'://交叉交易消息，报告开盘、收盘或IPO等集合竞价产生的成交。
+            return ProcessCrossTradeMessage(data, size);
+        case 'B'://交易作废消息，报告一笔之前公布的成交被作废。
+            return ProcessBrokenTradeMessage(data, size);
+        case 'I'://净订单 imbalance指标消息，提供开盘和收盘集合竞价前的 imbalance 信息。 |
+            return ProcessNOIIMessage(data, size);
+        case 'N': //零售价格改进指示器消息。 
+            return ProcessRPIIMessage(data, size);
+        case 'J': //涨跌幅限制（LULD）拍卖区间消息。 
+            return ProcessLULDAuctionCollarMessage(data, size);
+        default: //其他消息
+            return ProcessUnknownMessage(data, size);
+    }
+}
+
+void ITCHHandler::Reset()
+{
+    _size = 0;
+    _cache.clear();
+}
+
+/**
+ * 系统事件消息，标识市场或数据源的启动、结束等状态
+ */
+bool ITCHHandler::ProcessSystemEventMessage(void* buffer, size_t size)
+{
+    // ITCH 系统事件消息的固定长度为 12 字节，使用 assert 在调试模式下进行断言检查
+    assert((size == 12) && "Invalid size of the ITCH message type 'S'");
+    if (size != 12)
+        return false;
+
+    // 将 void* 转换为 uint8_t* 以便按字节操作
+    uint8_t* data = (uint8_t*)buffer;
+
+    SystemEventMessage message;
+    // *data++ 先取当前指针的值，然后指针自增
+    message.Type = *data++;
+    // ITCH 协议使用大端序（网络字节序） ReadBigEndian 函数从网络字节序转换为主机字节序 返回读取的字节数（2），用于移动指针
+    data += CppCommon::Endian::ReadBigEndian(data, message.StockLocate);
+    data += CppCommon::Endian::ReadBigEndian(data, message.TrackingNumber);
+    //读取 6 字节的纳秒级时间戳,返回读取的字节数（6）
+    data += ReadTimestamp(data, message.Timestamp);
+    message.EventCode = *data++;
+
+    return onMessage(message);
+}
+
+} // namespace ITCH
+} // namespace CppTrader
+
+```
+
+根据代码，`ProcessSystemEventMessage`护理方法，系统事件消息的字段布局如下：
+
+| 字段                | 字节偏移 | 长度   | 说明               |
+| :------------------ | :------- | :----- | :----------------- |
+| **Type**            | 0        | 1 字节 | 消息类型，应为 'S' |
+| **Stock Locate**    | 1        | 2 字节 | 股票定位码         |
+| **Tracking Number** | 3        | 2 字节 | 追踪编号           |
+| **Timestamp**       | 5        | 6 字节 | 时间戳（纳秒）     |
+| **Event Code**      | 11       | 1 字节 | 事件代码           |
+
+
+根据 ITCH 规范，Event Code 可能的值包括：
+
+| 代码  | 含义                  | 说明         |
+| :---- | :-------------------- | :----------- |
+| `'O'` | Start of Messages     | 消息开始     |
+| `'S'` | Start of System Hours | 系统小时开始 |
+| `'Q'` | Start of Market Hours | 市场小时开始 |
+| `'M'` | End of Market Hours   | 市场小时结束 |
+| `'E'` | End of System Hours   | 系统小时结束 |
+| `'C'` | End of Messages       | 消息结束     |
+
+
+### 处理数据技术优化分析
+
+ITCH处理器在基准测试中，吞吐量在 6489296 msg/s ，因此下面我们分析在`process`中使用了哪些技术来提高吞吐量;
+
+#### 1、零拷贝设计（Zero-Copy）
+
+##### 直接指针操作
+
+```cpp
+uint8_t* data = (uint8_t*)buffer;  // 直接使用原始缓冲区，不复制
+```
+
+- **传统做法**：将数据拷贝到内部缓冲区 → 额外的内存分配和复制
+- **CppTrader做法**：直接在原始缓冲区上操作 → **减少50-80%的内存操作**
+
+为什么`uint8_t* data = (uint8_t*)buffer`操作是直接内存操作:[零拷贝直接内存操作](/project-docs/Opensource/cpptrader/零拷贝直接内存操作/)
+
+##### 条件性缓存
+
+```cpp
+if (_cache.empty()) {
+    // 路径1：无缓存，直接处理原始数据（零拷贝）
+    ProcessMessage(&data[index], _size);
+} else {
+    // 路径2：有缓存才复制（仅在必要时）
+    ProcessMessage(_cache.data(), _size);
 }
 ```
 
-assert vs 异常处理
+**关键优化**：只在消息被拆包时才复制数据，理想情况下（数据完整到达）实现**完全零拷贝**。
 
-| 特性         | assert                     | 异常               |
-| :----------- | :------------------------- | :----------------- |
-| **目的**     | 调试时检查程序错误         | 处理运行时异常情况 |
-| **生效范围** | 调试模式（NDEBUG未定义）   | 所有模式           |
-| **行为**     | 终止程序                   | 可捕获并恢复       |
-| **适用场景** | 永远不应该发生的错误       | 可预见的异常情况   |
-| **性能影响** | 调试模式有开销，发布模式无 | 始终有开销         |
 
+#### 2、分支预测优化（Branch Prediction）
 
-- assert 是调试工具，用于检查"永远为真"的条件
-- 在发布模式（NDEBUG）下完全移除，无性能开销
-- 用于捕获程序错误，而不是处理用户输入或运行时异常
-- 静态断言（static_assert）用于编译时检查
-- 在金融/交易系统（如你的 OrderBook）中，assert 常用于检查数据一致性和不变量
+##### 常见路径优先
 
-应该使用 assert 的场景
-- 检查函数参数的合法性（私有函数）
-- 检查类的不变式
-- 检查算法的预期结果
-- 验证"不可能发生"的情况
-
-
-## 概念
-
-“档位”（Levels）
-
-
-## 订单
-
-### Order Side（订单方向）
-
-订单方向是交易订单最基本的属性，表示交易者是买入还是卖出。这是所有订单都必须指定的核心参数。
-
-```c++
-// 最基本的订单方向枚举
-enum class OrderSide {
-    BUY,   // 买入
-    SELL   // 卖出
-};
-```
-BUY:买方是指由各类投资机构（如共同基金、养老基金和保险公司）组成的订单方，这些机构通常会出于资金管理的目的购入大量证券。
-
-SELL:相反的一方则由那些出于资金管理目的而大量抛售证券的金融机构组成。
-
-### Order type 订单类型
-
-订单类型定义了订单如何被执行的规则，是交易系统中最重要的参数之一。不同的订单类型适用于不同的交易策略和市场条件。
-
-```C++
-// 基础订单类型
-enum class OrderType : uint8_t {
-    // 基础类型
-    MARKET = 0,           // 市价单
-    LIMIT = 1,            // 限价单
-    STOP = 2,             // 止损单
-    STOP_LIMIT = 3,       // 止损限价单
-    
-    // 高级类型
-    TRAILING_STOP = 4,    // 移动止损单
-    TRAILING_LIMIT = 5,   // 移动限价单
-    ICEBERG = 6,          // 冰山订单
-    PEGGED = 7,           // 锚定订单
-    
-    // 条件类型
-    MARKET_IF_TOUCHED = 8,    // 触价转市价
-    LIMIT_IF_TOUCHED = 9,     // 触价转限价
-    ONE_CANCELS_OTHER = 10,   // 二选一委托
-    BRACKET = 11,             // 括号委托
-    
-    // 特殊类型
-    TWAP = 12,            // 时间加权平均价格
-    VWAP = 13,            // 成交量加权平均价格
-    POV = 14,             // 成交量百分比
-    ADAPTIVE = 15,        // 自适应订单
-    
-    UNKNOWN = 255
-};
-
-// 订单类别
-enum class OrderCategory {
-    SIMPLE,      // 简单订单（立即执行）
-    CONDITIONAL, // 条件订单（需触发）
-    ALGO,        // 算法订单
-    COMPLEX      // 复杂组合订单
-};
-
-// 订单类型特征
-struct OrderTypeFeatures {
-    bool requires_price;      // 是否需要价格
-    bool requires_stop;       // 是否需要止损价
-    bool requires_trail;      // 是否需要跟踪参数
-    bool can_be_hidden;       // 是否可以隐藏
-    bool supports_iceberg;    // 是否支持冰山
-    OrderCategory category;
-};
-```
-
-| 订单类型     | 价格指定  | 触发条件 | 可见性 | 适用场景   |
-| :----------- | :-------- | :------- | :----- | :--------- |
-| **市价单**   | 无        | 立即     | 全部   | 快速成交   |
-| **限价单**   | 有        | 达到限价 | 全部   | 控制成本   |
-| **止损单**   | 触发价    | 达到止损 | 全部   | 风险控制   |
-| **止损限价** | 触发+限价 | 达到止损 | 全部   | 精确控制   |
-| **移动止损** | 动态      | 价格反向 | 全部   | 保护利润   |
-| **冰山订单** | 有限价    | 达到限价 | 部分   | 大额交易   |
-| **括号委托** | 多个      | 多种     | 全部   | 自动化交易 |
-
-#### Market Order（市价单）
-
-市价单是指以当前市场上最优可用价格立即执行的订单类型。它保证成交，但不保证成交价格。
-
-什么是市价单?
-
-```c++
-// 市价单的核心特征
-- 保证成交（只要有对手盘）
-- 不保证价格（可能产生滑点）
-- 立即执行（优先级最高）
-- 简单直接（只需指定数量）
-```
-
-| 特性         | 市价单   | 限价单     |
-| :----------- | :------- | :--------- |
-| **成交保证** | 保证成交 | 不保证成交 |
-| **价格控制** | 无控制   | 精确控制   |
-| **执行速度** | 立即     | 可能等待   |
-| **滑点风险** | 有       | 无         |
-| **使用场景** | 急需成交 | 控制成本   |
-
-
-使用建议：
-- 小订单：可以直接使用市价单
-- 大订单：考虑分批或使用冰山订单
-- 高波动：设置滑点保护
-- 低流动性：避免使用市价单
-- 紧急情况：市价单是最佳选择
-
-#### Limit Order（限价单）
-
-限价单是指以指定价格或更好价格执行的订单。它保证价格，但不保证成交。
-
-什么是限价单？
-
-```c++
-// 限价单的核心特征
-- 保证价格（不会以更差价格成交）
-- 不保证成交（可能永远不会执行）
-- 价格控制（精确指定买入/卖出价）
-- 可能部分成交（如果只成交一部分）
-
-```
-
-**限价单 vs 市价单**
-
-| 特性         | 限价单   | 市价单   |
-| :----------- | :------- | :------- |
-| **价格控制** | 精确控制 | 无控制   |
-| **成交保证** | 不保证   | 保证成交 |
-| **执行速度** | 可能等待 | 立即     |
-| **滑点风险** | 无       | 有       |
-| **使用场景** | 控制成本 | 急需成交 |
-
-**优缺点**
-
-| 优点           | 缺点         |
-| :------------- | :----------- |
-| 精确控制价格   | 可能无法成交 |
-| 无滑点风险     | 需要等待     |
-| 可以做市赚差价 | 可能错过行情 |
-| 适合大额交易   | 需要监控     |
-| 可以隐藏意图   | 可能被利用   |
-
-
-Limit Order 的关键点：
-
-- 价格控制：精确指定交易价格
-- 执行不确定性：可能永远无法成交
-- 优先规则：价格优先、时间优先
-- 市场影响：提供流动性
-- 策略多样：可用于各种交易策略
-
-#### Stop Order（止损单）
-
-
-止损单是一种条件触发订单，当市场价格达到指定的止损价时，它会被激活并转为市价单或限价单。主要用于风险控制和利润保护。
-
-什么是止损单？
-
-```c++
-
-// 止损单的核心特征
-- 条件触发：达到止损价才激活
-- 风险控制：限制最大亏损
-- 利润保护：锁定已有利润
-- 自动执行：无需人工干预
-```
-
-止损单的两种主要类型:
-
-| 类型         | 触发后转为 | 特点                 |
-| :----------- | :--------- | :------------------- |
-| **市价止损** | 市价单     | 保证成交，价格不确定 |
-| **限价止损** | 限价单     | 价格确定，可能不成交 |
-
-
-优缺点:
-
-| 优点         | 缺点               |
-| :----------- | :----------------- |
-| 自动控制风险 | 可能被短期波动触发 |
-| 无需盯盘     | 滑点风险           |
-| 保护利润     | 可能错过反弹       |
-| 纪律性强     | 需要精确设置       |
-| 适合各种策略 | 可能被操纵         |
-
-
-Stop Order 的关键点：
-
-- 风险控制：限制最大亏损
-- 自动执行：无需人工干预
-- 条件触发：达到指定价格才激活
-- 多种类型：市价止损、限价止损、移动止损
-- 策略核心：是交易系统的重要组成部分
-
-
-"Order max visible quantity"（订单最大可见数量）是订单簿中显示的订单数量上限，是冰山订单（Iceberg Order）的核心概念。
-
-#### Stop-Limit Order（止损限价单）
-
-止损限价单是止损单和限价单的组合。它先像止损单一样触发，然后像限价单一样执行，既有触发条件又有价格限制。
-
-什么是止损限价单？
-
-```c++
-// 止损限价单的核心特征
-- 两个价格：止损价(触发) + 限价(执行)
-- 触发前：像止损单一样监控市场
-- 触发后：变成限价单等待成交
-- 精确控制：既有触发价又有执行价
-```
-
-止损限价单 vs 其他订单
-
-| 订单类型     | 触发条件   | 执行保证 | 价格控制 |
-| :----------- | :--------- | :------- | :------- |
-| **止损市价** | 达到止损价 | 保证成交 | 无控制   |
-| **止损限价** | 达到止损价 | 不保证   | 精确控制 |
-| **普通限价** | 立即       | 不保证   | 精确控制 |
-| **普通市价** | 立即       | 保证成交 | 无控制   |
-
-
-优缺点:
-
-| 优点             | 缺点               |
-| :--------------- | :----------------- |
-| 精确控制执行价格 | 可能无法成交       |
-| 避免滑点         | 触发后仍可能不成交 |
-| 适合大额订单     | 比普通止损复杂     |
-| 防止被操纵       | 需要更多判断       |
-| 适合震荡市       | 趋势市可能错过     |
-
-Stop-Limit Order 的关键点：
-
-- 双重控制：既有止损条件又有价格限制
-- 精确执行：避免不利价格成交
-- 风险可控：知道最差可能的价格
-- 灵活运用：可用于多种交易策略
-- 需要技巧：正确设置需要经验
-
-#### Trailing Stop Order（移动止损单）
-
-
-移动止损单是一种动态调整的止损订单，它会随着市场价格的有利变动自动调整止损价，以保护利润，同时在市场反转时触发止损。
-
-什么是移动止损？
-
-```c++
-// 移动止损的核心原理
-初始价格: 100.00
-移动距离: 0.50
-
-价格上涨: 100.00 -> 101.00
-止损价上移: 99.50 -> 100.50
-
-价格上涨: 101.00 -> 102.00
-止损价上移: 100.50 -> 101.50
-
-价格回调: 102.00 -> 101.40 (未触发)
-价格继续回调: 101.40 -> 101.00 (触发止损)
-```
-
-移动止损 vs 固定止损
-
-
-| 特性         | 移动止损 | 固定止损   |
-| :----------- | :------- | :--------- |
-| **止损价**   | 动态调整 | 固定不变   |
-| **利润保护** | 锁定利润 | 不保护利润 |
-| **市场适应** | 跟随趋势 | 固定位置   |
-| **使用场景** | 趋势行情 | 震荡行情   |
-
-
-Trailing Stop Order 的关键点：
-
-- 动态保护：随价格移动调整止损
-- 利润锁定：保护已获得的浮盈
-- 趋势跟随：让利润在趋势中奔跑
-- 自动执行：无需人工干预
-- 灵活配置：可调整跟踪距离和类型
-
-#### Trailing Stop-Limit Order（移动止损限价单）
-
-
-移动止损限价单是移动止损单和限价单的结合体。它像移动止损单一样动态调整触发价，但触发后转为限价单而非市价单，既有动态保护又有价格控制。
-
-什么是移动止损限价单？
-
-```c++
-// 移动止损限价单的核心特征
-- 两个动态价格：移动止损价(触发) + 限价(执行)
-- 触发前：像移动止损一样动态调整
-- 触发后：变成限价单，有价格上限/下限
-- 双重控制：既有移动保护，又有价格限制
-```
-
-移动止损限价 vs 其他订单
-
-| 订单类型         | 止损价 | 执行价 | 价格控制 | 成交保证   |
-| :--------------- | :----- | :----- | :------- | :--------- |
-| **移动止损**     | 动态   | 市价   | 无       | 保证成交   |
-| **移动限价**     | 动态   | 限价   | 精确     | 可能不成交 |
-| **固定止损限价** | 固定   | 限价   | 精确     | 可能不成交 |
-
-
-移动止损限价的优缺点
-
-
-| 优点         | 缺点                 |
-| :----------- | :------------------- |
-| 动态保护利润 | 可能永远无法成交     |
-| 精确价格控制 | 比简单移动止损复杂   |
-| 避免不利滑点 | 需要更多参数设置     |
-| 适合大额订单 | 在快速市场中可能错过 |
-| 防止被操纵   | 需要监控限价合理性   |
-
-Trailing Stop-Limit Order 的关键点：
-
-- 双重动态：触发价和限价都动态调整
-- 精确控制：既有移动保护又有价格限制
-- 保护空间：触发价和限价之间的缓冲
-- 灵活配置：可根据市场调整参数
-- 高级工具：适合专业交易者
-
-
-
-### Order Time in Force（订单有效时间）
-
-
-Time in Force (TIF) 是指定订单在市场上保持活跃的时间长度的重要参数。它决定了订单何时自动失效或被取消。
-
-什么是Time in Force？
-
-```c++
-// Time in Force的核心作用
-- 控制订单生命周期
-- 防止订单无限期挂单
-- 适应不同交易策略
-- 管理风险和资金占用
-```
-
-常见的TIF类型
-
-| TIF类型                 | 缩写 | 含义             | 适用场景     |
-| :---------------------- | :--- | :--------------- | :----------- |
-| **Day**                 | DAY  | 当日有效         | 日内交易     |
-| **Good Till Cancelled** | GTC  | 撤销前有效       | 长期策略     |
-| **Immediate or Cancel** | IOC  | 立即成交否则撤销 | 快速成交     |
-| **Fill or Kill**        | FOK  | 全部成交否则撤销 | 大单精确控制 |
-| **Good Till Date**      | GTD  | 指定日期前有效   | 事件驱动     |
-| **At the Opening**      | OPG  | 开盘价成交       | 捕捉开盘     |
-| **At the Closing**      | CLS  | 收盘价成交       | 捕捉收盘     |
-
-
-TIF类型详细对比
-
-| TIF     | 有效期 | 部分成交 | 适用策略 | 风险           |
-| :------ | :----- | :------- | :------- | :------------- |
-| **DAY** | 当天   | 允许     | 日内交易 | 收盘未成交     |
-| **GTC** | 长期   | 允许     | 长线投资 | 价格变化       |
-| **IOC** | 瞬间   | 允许     | 快速成交 | 可能只成交部分 |
-| **FOK** | 瞬间   | 不允许   | 精确控制 | 可能全不成交   |
-| **GTD** | 指定   | 允许     | 事件驱动 | 日期选择       |
-| **OPG** | 开盘   | 不允许   | 捕捉开盘 | 开盘价不利     |
-| **CLS** | 收盘   | 不允许   | 捕捉收盘 | 收盘价不利     |
-
-
-Time in Force 的关键点：
-
-- 生命周期控制：决定订单存活时间
-- 策略适配：不同策略需要不同TIF
-- 风险管控：防止订单无限期挂单
-- 执行控制：IOC/FOK控制执行方式
-- 时间价值：考虑时间对订单的影响
-
-
-#### Good-Till-Cancelled (GTC) 订单
-
-GTC订单是一种长期有效的订单类型，它会一直保留在市场中，直到被手动取消或完全成交。这是长线投资者最常用的订单类型之一。
-
-什么是GTC订单？
-
-```c++
-// GTC订单的核心特征
-- 长期有效：不会自动过期
-- 手动取消：只有交易者主动取消才失效
-- 跨交易日：可以保留数天、数周甚至数月
-- 价格锁定：锁定理想价格，等待市场到达
-```
-
-GTC vs 其他TIF
-
-| 特性         | GTC      | DAY      | IOC/FOK  |
-| :----------- | :------- | :------- | :------- |
-| **有效期**   | 无限期   | 当天     | 瞬间     |
-| **跨交易日** | 是       | 否       | 否       |
-| **取消方式** | 手动     | 自动收盘 | 自动     |
-| **适用场景** | 长线投资 | 日内交易 | 紧急成交 |
-
-GTC订单的优缺点
-
-| 优点             | 缺点                 |
-| :--------------- | :------------------- |
-| 无需每天重新下单 | 可能错过价格变动     |
-| 捕捉理想价格     | 长期占用资金         |
-| 适合长线投资     | 需要定期检查         |
-| 减少操作频率     | 市场变化后可能不适用 |
-| 自动执行策略     | 有最长期限限制       |
-
-Good-Till-Cancelled (GTC) 订单的关键点：
-
-- 长期有效：持续到手动取消或成交
-- 策略执行：自动执行长线投资策略
-- 价格锁定：锁定理想买入/卖出价
-- 减少操作：无需每天重新下单
-- 需要监控：定期检查确保仍然合理
-
-#### Immediate-Or-Cancel (IOC) 订单
-
-IOC订单是一种要求立即部分或全部成交，未成交部分立即撤销的订单类型。它是高频交易和快速执行策略的核心工具。
-
-什么是IOC订单？
-
-```c++
-// IOC订单的核心特征
-- 立即执行：下单后立即尝试成交
-- 部分接受：可以只成交一部分
-- 剩余取消：未成交部分立即撤销
-- 无等待：不会挂在订单簿上
-```
-
-IOC vs 其他订单类型
-
-| 特性         | IOC    | FOK    | 普通限价 | 市价 |
-| :----------- | :----- | :----- | :------- | :--- |
-| **部分成交** | 允许   | 不允许 | 允许     | 允许 |
-| **剩余处理** | 取消   | 取消   | 保留     | 保留 |
-| **执行速度** | 立即   | 立即   | 可能等待 | 立即 |
-| **价格控制** | 有限价 | 有限价 | 有限价   | 无   |
-
-
-IOC订单的优缺点
-
-
-| 优点             | 缺点             |
-| :--------------- | :--------------- |
-| 立即执行         | 可能只成交部分   |
-| 不挂单           | 无法等待更好价格 |
-| 价格控制（限价） | 大单可能成交少   |
-| 适合高频交易     | 需要监控市场深度 |
-| 减少市场影响     | 不适合大额订单   |
-
-IOC的使用场景
-
-| 场景           | 说明         | 示例       |
-| :------------- | :----------- | :--------- |
-| **套利**       | 快速捕捉价差 | 跨市场套利 |
-| **做市**       | 提供流动性   | 频繁买卖   |
-| **大单拆分**   | 分批执行     | TWAP/VWAP  |
-| **流动性探测** | 测试市场深度 | 冰山探测   |
-| **紧急平仓**   | 快速退出     | 止损触发   |
-
-
-Immediate-Or-Cancel (IOC) 订单的关键点：
-
-- 即时性：下单后立即尝试成交
-- 灵活性：接受部分成交
-- 无残留：不成交部分立即取消
-- 价格控制：可设限价避免不利价格
-- 策略工具：适合高频和套利策略
-
-#### Fill-Or-Kill (FOK) 订单
-
-FOK订单是一种要求全部立即成交，否则完全撤销的订单类型。它是大额交易和精确仓位控制的重要工具。
-
-什么是FOK订单？
-
-```c++
-// FOK订单的核心特征
-- 全部成交：必须整个订单一次完全成交
-- 立即执行：下单后立即尝试
-- 否则撤销：无法全部成交就完全取消
-- 无部分成交：不允许部分填充
-```
-
-FOK vs 其他订单类型
-
-| 特性             | FOK          | IOC      | 普通限价 | 市价     |
-| :--------------- | :----------- | :------- | :------- | :------- |
-| **部分成交**     | 不允许       | 允许     | 允许     | 允许     |
-| **全部成交要求** | 必须         | 不必须   | 不必须   | 不必须   |
-| **剩余处理**     | 完全取消     | 部分取消 | 保留     | 保留     |
-| **执行速度**     | 立即         | 立即     | 可能等待 | 立即     |
-| **适用场景**     | 大单精确控制 | 快速成交 | 价格控制 | 确保成交 |
-
-FOK订单的优缺点
-
-| 优点         | 缺点         |
-| :----------- | :----------- |
-| 确保完整仓位 | 高被拒率     |
-| 避免部分成交 | 不适合大单   |
-| 价格控制精确 | 流动性要求高 |
-| 适合套利策略 | 可能错过机会 |
-| 执行确定性强 | 需要精确计算 |
-
-FOK的使用场景
-
-
-| 场景          | 说明         | 成功率要求 |
-| :------------ | :----------- | :--------- |
-| **套利**      | 锁定价差     | 必须100%   |
-| **大单拆分**  | 分批执行     | 中等       |
-| **仓位调整**  | 精确控制     | 高         |
-| **开盘/收盘** | 捕捉特定价格 | 高         |
-| **对冲**      | 同时开平仓   | 必须100%   |
-
-Fill-Or-Kill (FOK) 订单的关键点：
-
-- 全部或全不：要么完全成交，要么完全取消
-- 确定性：知道要么全部成交，要么一点没有
-- 流动性要求：需要足够的市场深度
-- 精确控制：适合需要精确仓位的场景
-- 风险工具：避免部分成交的风险
-
-#### All-Or-None (AON) 订单
-
-
-AON订单是一种要求要么全部成交，要么完全不成交的订单类型。与FOK不同，AON订单不要求立即执行，可以挂在订单簿上等待，直到能够全部成交。
-
-什么是AON订单？
-
-```c++
-// AON订单的核心特征
-- 全部成交要求：必须整个订单一次完全成交
-- 允许等待：可以挂在订单簿上等待
-- 无部分成交：不允许部分填充
-- 时间灵活：可以设置各种时间有效期
-```
-AON vs FOK 对比
-
-| 特性             | AON      | FOK      | IOC      |
-| :--------------- | :------- | :------- | :------- |
-| **全部成交要求** | 必须     | 必须     | 不必须   |
-| **立即执行要求** | 不必须   | 必须     | 必须     |
-| **允许等待**     | 是       | 否       | 否       |
-| **部分成交**     | 不允许   | 不允许   | 允许     |
-| **适用场景**     | 大单等待 | 立即套利 | 快速成交 |
-
-
-AON订单的优缺点
-
-| 优点         | 缺点             |
-| :----------- | :--------------- |
-| 确保完整仓位 | 可能等待很长时间 |
-| 避免部分成交 | 匹配难度大       |
-| 可以等待市场 | 流动性要求高     |
-| 适合大额交易 | 可能错过机会     |
-| 价格控制好   | 需要耐心         |
-
-AON的使用场景
-
-| 场景         | 说明         | 成功率 |
-| :----------- | :----------- | :----- |
-| **机构大单** | 避免市场冲击 | 中等   |
-| **指数调整** | 需要精确数量 | 高     |
-| **换仓操作** | 同时买卖     | 中等   |
-| **期权行权** | 需要整手     | 高     |
-| **大宗交易** | 场外协商     | 高     |
-
-
-All-Or-None (AON) 订单的关键点：
-
-- 数量刚性：必须全部成交
-- 时间柔性：可以等待市场
-- 避免碎片：防止部分成交
-- 大单工具：适合机构交易
-- 市场深度：需要足够的对手盘
-
-### 冰山订单
-
-冰山订单
-1. 总数量：订单实际的总数量（隐藏在水下）
-2. 可见数量：订单簿上显示的部分（冰山一角）
-3. 最大可见数量：允许显示在订单簿上的最大数量
-
-```text
-订单簿显示：
-卖二：100.07  800股
-卖一：100.05  200股  ← 可能是冰山订单，实际总数量更大
--------------------
-买一：100.00  500股
-买二：99.99   1000股
-
-冰山订单实际结构：
-总数量：10,000股
-可见峰值：200股
-每次刷新：显示200股，成交完再显示200股...
-
-```
-
-为什么需要可见数量限制？
-
-1、隐藏真实意图
-
-```java
-// 不好的做法：显示全部订单
-Order largeOrder(10000, OrderSide::SELL, 100.05);
-// 订单簿显示10000股卖单，吓跑买家
-
-// 好做法：冰山订单
-IcebergOrder hiddenOrder(
-    /* total */ 10000, 
-    /* visible */ 200, 
-    OrderSide::SELL, 
-    100.05
-);
-// 订单簿只显示200股，市场不会察觉大抛压
-```
-
-2、减少市场冲击
-大额订单直接显示会导致价格剧烈波动
-
-分批显示可以平滑交易影响
-
-3、防止市场操纵
-限制可见数量防止虚假深度
-
-要求显示真实流动性的一部分
-
-### 常规订单
-
-Regular Order（常规订单/普通订单）是指最基础、最标准的订单类型，与之相对的是各种高级订单类型（如冰山订单、止损单、条件单等）。
-
-####　Regular Order 的定义
-
-
-１.　一次性显示全部数量
-２.　没有特殊条件或隐藏机制
-３．遵循基本的买卖规则
-４.　最常见的订单类型
-
-#### 对比：Regular Order vs 其他订单类型
-
-| 特性         | Regular Order | Iceberg Order | Stop Order | Conditional Order |
-| :----------- | :------------ | :------------ | :--------- | :---------------- |
-| **可见性**   | 全部可见      | 部分可见      | 全部可见   | 全部可见          |
-| **触发条件** | 立即/限价     | 立即/限价     | 达到止损价 | 满足其他条件      |
-| **复杂性**   | 最低          | 中等          | 中等       | 高                |
-| **使用频率** | 90%+          | 机构常用      | 风险控制   | 策略交易          |
-
-
-
-### 订单量
-
-Order Quantity（订单数量）是指订单中指定的交易单位数量，是订单最基本的属性之一。
-
-核心概念
-- 订单数量 = 想要买入或卖出的证券数量
-- 通常以股（股票）、手（A股1手=100股）、合约（期货/期权）为单位
-- 与价格共同决定订单的总价值
-
-
-**Order Executed Quantity**
-
-Order Executed Quantity（订单已执行数量/成交量）是指订单中已经被市场匹配并成功交易的部分数量。这是订单生命周期中的核心概念。
-
-关键概念
-- 已执行数量 = 已经成交的证券数量
-- 未执行数量 = 订单总量 - 已执行数量
-- 部分成交：订单只执行了一部分
-- 完全成交：订单全部数量都执行了
-
-
-**Order leaves quantity**
-
-LeavesQuantity（剩余数量/未成交数量）是指订单当前还未成交的剩余部分数量。这是订单生命周期中的一个关键字段，特别在FIX金融信息交换协议中常见。
-
-核心概念
-- LeavesQuantity = 订单总数量 - 已成交数量
-- 代表仍然活跃在市场上等待成交的数量
-- 当LeavesQuantity = 0时，订单完全成交或被取消
-
-
-FIX协议中的定义
-在FIX（Financial Information eXchange）协议中，LeavesQuantity是标准字段：
-
-```c++
-// FIX协议字段标签
-namespace FIXTags {
-    const int OrderQty = 38;        // 订单原始数量
-    const int CumQty = 14;          // 累计成交数量
-    const int LeavesQty = 151;       // 剩余数量
-    const int LastQty = 32;          // 最后一笔成交数量
-    const int LastPx = 31;           // 最后一笔成交价格
+```cpp
+if (_cache.empty())  // 绝大多数情况为 true（无缓存）
+{
+    // 快速路径：直接处理
+    ProcessMessage(&data[index], _size);
 }
-
-// FIX消息示例
-// "35=8|55=AAPL|38=10000|14=4500|151=5500|..."
-// 订单原始数量10000，已成交4500，剩余5500
+else  // 罕见情况（<1%）
+{
+    // 慢速路径：处理缓存
+}
 ```
 
-### Time in Force
+##### 状态机设计
 
-Time in Force (TIF) 是订单的有效时间指令，决定了订单在市场中保持活跃的时间长度。这是订单生命周期管理的关键参数。
-
-TIF 的作用
-1. 控制订单的生命周期：订单在市场上停留多久
-2. 风险管理：防止订单无限期挂在市场上
-3. 交易策略：适应不同的交易需求
-
-### Market Order Slippage（市价单滑点）
-
-
-滑点是指预期成交价格与实际成交价格之间的差异。对于市价单，滑点是一个关键的风险因素。
-
-什么是滑点？
-
-```c++
-// 预期价格 vs 实际价格
-double expected_price = 100.00;  // 下单时的市场价格
-double actual_price = 100.05;     // 实际成交价格
-double slippage = actual_price - expected_price;  // 0.05 正滑点（买贵了）
-
-// 对于买单：正滑点 = 买贵了，负滑点 = 买便宜了
-// 对于卖单：正滑点 = 卖便宜了，负滑点 = 卖贵了
+```cpp
+if (_size == 0) { /* 读取长度 */ }
+if (_size > 0)  { /* 读取消息体 */ }
 ```
 
-为什么会产生滑点？
-
-1. 流动性不足：没有足够的对手盘
-
-2. 市场波动：价格在成交过程中变化
-
-3. 订单规模：大订单消耗多个价格档位
-
-4. 延迟：从下单到成交的时间差
+- 状态机让CPU分支预测器能够**准确预测**执行路径
+- 在现代CPU上，分支预测错误惩罚约 **10-20个时钟周期**
 
 
-### Order Trailing Distance to Market（订单的跟踪距离/移动止损距离）
+#### 3、内存访问模式优化
 
+#####  顺序访问
 
-Trailing Distance 是移动止损/止盈订单的核心参数，定义了订单价格与市场价格之间的动态距离。
-
-什么是移动跟踪距离？
-
-```c++
-// 移动止损的基本原理
-double trailing_distance = 0.50;  // 跟踪距离0.50美元
-double best_price = 100.00;       // 观察到的最高价（多头）
-
-// 止损价格 = 最佳价格 - 跟踪距离
-double stop_price = best_price - trailing_distance;
-
-// 随着价格上涨，止损价也上移
-best_price = 101.00;  // 价格上涨
-stop_price = 101.00 - 0.50 = 100.50;  // 止损价上移到100.50
+```cpp
+while (index < size) {
+    // 按顺序访问 data[index], data[index+1], ...
+    index += ReadBigEndian(&data[index], message_size);
+    // ...
+}
 ```
 
-Trailing Distance 的关键点：
+- **顺序内存访问**能充分利用CPU的**预取机制**
+- L1/L2/L3缓存的命中率可达 **95%以上**
 
-1. 动态保护：随价格移动自动调整止损
+##### 缓存行对齐
 
-2. 锁定利润：保护已获得的浮盈
-
-3. 适应市场：可根据波动率调整
-
-4. 风险控制：防止利润回吐过多
-
-5. 自动化：无需人工干预
-
-### Order Trailing Step（移动止损步长）
-
-Trailing Step 是移动止损订单中控制止损价格调整的最小单位，决定了止损价更新的频率和精度。
-
-什么是移动步长？
-
-```c++
-// 移动步长的作用
-double trailing_step = 0.10;  // 步长0.10美元
-double best_price = 100.00;
-double current_stop = 99.50;  // 初始止损 = best_price - 0.50
-
-// 价格涨到100.07，但涨幅0.07 < 步长0.10，止损不变
-best_price = 100.07;
-current_stop = 99.50;  // 保持不变
-
-// 价格涨到100.11，涨幅0.11 >= 步长0.10，止损上移
-best_price = 100.11;
-current_stop = 100.11 - 0.50 = 99.61;  // 止损上移0.11
+```cpp
+uint8_t data[8192];  // 8KB，正好是L1缓存的典型大小
 ```
 
-步长 vs 距离
-```c++
-struct TrailingParameters {
-    double distance;  // 跟踪距离（如0.50美元）- 止损与最佳价的差距
-    double step;      // 移动步长（如0.10美元）- 触发止损移动的最小价格变动
-    
-    // 止损价 = 最佳价 - 距离
-    // 但只有当最佳价变化 >= 步长时，才更新止损
-};
+- 缓冲区大小与CPU缓存行大小对齐
+- 减少跨缓存行访问
+
+
+#### 4、减少内存分配
+
+##### 预分配策略
+
+```cpp
+_cache.reserve(_size);  // 预分配，避免多次扩容
 ```
 
+- 每次扩容会导致 **O(n)的复制开销**
+- 预分配将多次分配降为**1次**
 
-Trailing Step 的关键点：
+##### 缓存重用
 
-控制频率：决定止损价更新的频繁程度
-
-减少噪声：避免被微小波动频繁触发更新
-
-平衡保护：在保护和灵活性之间找到平衡
-
-可优化：可以通过历史数据找到最优步长
-
-适应市场：不同市场条件需要不同步长
-
-
-
-## OrderBook(订单簿)
-
-
-### 什么是订单簿
-
-订单簿（Order Book）是一个实时记录并展示所有未成交买单和卖单的电子列表。它本质上是一个价格优先、时间优先的排序队列：
-
-- 买单队列：按价格从高到低排序（谁出价高谁优先）
-
-- 卖单队列：按价格从低到高排序（谁要价低谁优先）
-
-- 同价格：按到达时间从早到晚排序（先来后到）
-
-
-### 买单队列（Bids）
-
-买单队列（Bids）排序规则：
-- 通常买单按价格从高到低排序（谁出价高谁优先）
-- 正向迭代器：从高到低遍历
-- 反向迭代器：从低到高遍历
-
-案例:
-```c++
-买单队列（价格从高到低）：
-[100] → [99] → [98] → [97]  （正向迭代方向）
-  ↑                           
-当前在100，下一个更低价格是99
-使用正向迭代器++会到99吗？不，正向是从高到低
-需要反向迭代器从低到高遍历才能找到更低价格
+```cpp
+_cache.clear();  // 保留已分配的内存
 ```
 
+- `clear()` 不释放内存，只重置大小
+- 下次使用时直接复用已有内存
 
-### 卖单队列（Asks）    
+#### 5、批量处理
 
-- 通常卖单按价格从低到高排序（谁要价低谁优先）
+##### 消息批处理
 
-- 正向迭代器：从低到高遍历
-
-- 反向迭代器：从高到低遍历
-
-案例:
-
-```c++
-卖单队列（价格从低到高）：
-[100] → [101] → [102] → [103] （正向迭代方向）
-  ↑
-当前在100，下一个更高价格是101
-使用正向迭代器++即可
+```cpp
+while (index < size)  // 一次调用处理多条消息
 ```
 
+- 减少函数调用开销
+- 利用CPU流水线并行处理
+
+##### 缓冲区批量读取
+
+```cpp
+size = input->Read(buffer, sizeof(buffer));  // 一次读8KB
+```
+
+- 减少系统调用次数（从百万级降到数千次）
+
+#### 6、位操作优化
+
+##### 字节序转换
+
+```cpp
+// ReadBigEndian 的实现（典型）
+inline size_t ReadBigEndian(const uint8_t* data, uint16_t& value) {
+    value = (data[0] << 8) | data[1];  // 位运算，极快
+    return 2;
+}
+```
+
+- 使用位运算替代乘法/除法
+- 编译器会优化为单条指令（如 `bswap`）
+
+### 为什么有这些优化
+
+#### CPU架构特性
+
+现代CPU（Intel/AMD）的特点：
+
+- **L1缓存**: 32KB，延迟~4个周期
+- **L2缓存**: 256KB，延迟~12个周期  
+- **L3缓存**: 8-32MB，延迟~40个周期
+- **主内存**: 延迟~200个周期
+
+CppTrader的设计确保**90%以上的数据访问在L1/L2缓存中完成**。
+
+#### 指令流水线
+
+```asm
+; 典型处理流程（简化）
+movzx eax, byte ptr [rdi]    ; 读1字节
+shl   eax, 8                  ; 左移
+movzx ecx, byte ptr [rdi+1]  ; 读2字节
+or    eax, ecx                ; 合并
+cmp   eax, 0                  ; 检查消息长度
+```
+
+- 流水线友好，没有分支中断
+
+#### SIMD向量化
+
+虽然这个特定代码没有显式使用SIMD，但编译器在 `-O3` 优化下会自动向量化部分操作：
+
+```cpp
+_cache.insert(_cache.end(), &data[index], &data[index + tail]);
+```
+
+可能被优化为 `memcpy`，进而使用SIMD指令（如 `rep movsb`）。
 
 
-## ITHC协议
+### 小结
 
-### ITHC协议是什么
+`ITCHHandler::Process` 的快，本质上来自于：
 
-ITCH是一种由纳斯达克（Nasdaq）开发的二进制协议，专门用于高效、低延迟地传输交易所的完整订单簿和市场数据。它是全球高频交易和算法交易系统中最核心的数据标准之一。
+1. **架构设计**：状态机 + 零拷贝 + 缓存优化
+2. **CPU友好**：顺序访问 + 分支预测 + 缓存局部性
+3. **内存管理**：预分配 + 重用 + 避免复制
+4. **批量处理**：减少调用次数 + 充分利用流水线
 
-简单来说，可以把ITCH想象成交易所向全世界实时广播的“内部账本”。它不仅告诉你最终成交的价格，还把你看到交易簿所需的每一笔订单的完整生命周期——从下单、修改、取消到成交——都实时推送给你。有了这些数据，你就可以在本地精确地重建出和交易所一模一样的完整订单簿
-
-### ITCH协议的核心特点
-
-首创与普及：由Nasdaq于2000年1月首创。如今不仅用于纳斯达克自己的市场，也被全球许多使用Nasdaq交易系统的交易所采用，例如日本交易所集团（JPX）、新加坡交易所（SGX）、澳大利亚证券交易所（ASX） 等。
-
-数据颗粒度：市场按订单：提供最高级别的市场数据（通常称为L3或Level 3数据）。它通过唯一的订单参考编号来追踪每一个单独的订单，让用户能看到每个价格水平上订单的构成和排队顺序。
-
-设计目标：极致性能：采用二进制编码，每个消息字段的位置和长度都是固定的，解析起来非常快，确定性高。专为低延迟、高吞吐量的场景设计，最大程度减少网络带宽占用。
-
-传输方式：ITCH本身只定义业务消息格式。它通常依赖底层的会话和传输协议来保证数据的可靠传输，最常见的组合是：
-
-MoldUDP64：用于主要的数据广播，通过UDP组播将数据同时发给所有订阅者。
-
-SoupBinTCP：用于点对点的可靠数据传输，常用于启动时的快照恢复（如Glimpse服务）或作为备份通道。
-
-### ITCH消息的构成
-
-ITCH协议由一系列按顺序排列的二进制消息组成。你上一轮问到的消息类型缩写，正是每条消息的第一个字节，用于标识该消息属于哪种事件。紧随其后的是根据不同消息类型而变化的定长字段。
-
-一个典型的ITCH消息可能包含以下信息：
-
-- 消息类型：如 A (添加订单), E (订单成交), X (订单取消) 等。
-- 时间戳：通常是自午夜以来的纳秒数，精度极高。
-- 订单参考编号：交易所分配给该订单的唯一标识符。
-- 成交/数量：涉及的股票数量。
-- 股票代码：对应的金融工具。
-- 价格：以整数表示，需要结合该股票的预设精度进行转换。
-- 买卖方向：表示买单 (B) 或卖单 (S)。
-
-
-### 消息类型
-
-
-ITCH协议中，每种消息都由一个唯一的单字节ASCII字符作为类型标识（Message Type）。根据公开的ITCH 5.0规范文档及相关工具库，以下是主要消息类型的缩写、名称及简要说明的汇总整理。
-
-| 类型缩写           | 消息名称 (Message Name)             | 简要说明                                                     |
-| :----------------- | :---------------------------------- | :----------------------------------------------------------- |
-| **系统与状态消息** |                                     |                                                              |
-| `S`                | System Event Message                | 系统事件消息，标识市场或数据源的启动、结束等状态。           |
-| `R`                | Stock Directory Message             | 股票目录消息，提供股票的基本信息和交易状态。                 |
-| `H`                | Stock Trading Action Message        | 股票交易行动消息，指示某支股票的交易状态（如暂停、恢复）。   |
-| `Y`                | Reg SHO Restriction Message         | Reg SHO限制消息，根据Reg SHO规则指示股票的卖空状态。         |
-| `L`                | Market Participant Position Message | 市场参与者头寸消息，标识特定市场参与者在某股票上的持仓状态。 |
-| `V`                | MWCB Decline Level Message          | 市场-wide熔断机制（MWCB）下跌区间消息。                      |
-| `W`                | MWCB Status Message                 | 市场-wide熔断机制（MWCB）状态消息。                          |
-| `K`                | IPO Quoting Period Update Message   | IPO报价时段更新消息。                                        |
-| `J`                | LULD Auction Collar Message         | 涨跌幅限制（LULD）拍卖区间消息。                             |
-| `h`                | Operational Halt Message            | 运营暂停消息。                                               |
-
-
-**订单与交易消息**
-
-
-| **订单与交易消息** |                                           |                                                              |
-| ------------------ | ----------------------------------------- | ------------------------------------------------------------ |
-| `A`                | Add Order Message                         | 添加订单消息（无MPID归属），表示一个新的限价订单进入市场。   |
-| `F`                | Add Order - MPID Attribution Message      | 添加订单消息（有MPID归属），与`A`类似，但包含了执行经纪商的ID。 |
-| `E`                | Order Executed Message                    | 订单执行消息，表示订单部分或全部成交。                       |
-| `C`                | Order Executed with Price Message         | 订单以指定价格执行消息，用于成交价与原显示价不同的情况（如非显示订单执行）。 |
-| `X`                | Order Cancel Message                      | 订单取消消息，表示订单被部分取消（余量更新）。               |
-| `D`                | Order Delete Message                      | 订单删除消息，表示订单被完全取消。                           |
-| `U`                | Order Replace Message                     | 订单替换消息，表示一个订单被修改（如数量或价格变更）。       |
-| `P`                | Trade Message (Non-Cross)                 | 非交叉交易消息，报告常规撮合产生的成交。                     |
-| `Q`                | Cross Trade Message                       | 交叉交易消息，报告开盘、收盘或IPO等集合竞价产生的成交。      |
-| `B`                | Broken Trade / Order Execution Message    | 交易作废消息，报告一笔之前公布的成交被作废。                 |
-| **其它消息**       |                                           |                                                              |
-| `I`                | NOII Message                              | 净订单 imbalance指标消息，提供开盘和收盘集合竞价前的 imbalance 信息。 |
-| `N`                | Retail Price Improvement Indicator (RPII) | 零售价格改进指示器消息。                                     |
-
-
-**补充说明：**
-
-- **变体与扩展**：除了标准的NASDAQ TotalView-ITCH 5.0，其他交易所（如Borsa Istanbul）或特定场景（如ITCH for Reported Trades）可能会对协议进行调整或扩展，引入新的消息类型。因此，具体应用中应以目标交易场所发布的协议规范为准。
-- **数据表示**：在ITCH协议中，消息以二进制格式编码。通常，第一个字节即为上述的消息类型缩写（如`0x41`代表`A`）。
-
+这些优化让它在**单核上达到接近内存带宽极限的性能**，是高性能金融数据处理的一个典范实现。
