@@ -266,6 +266,18 @@ export const navbar = defineNavbarConfig([
                 ],
             },
             {
+                icon: 'icomoon-free:github',
+                text: '开源项目',
+                items: [
+                    {
+                        icon: 'arcticons:yahoo-japan-finance',
+                        text: 'CppTrader 交易系统',
+                        link: '/project-docs/Opensource/cpptrader/',
+                        badge: {type: 'tip', text: '金融交易 c++'}
+                    }
+                ],
+            },
+            {
                 icon: 'codicon:github-project',
                 text: '我们正在做的项目',
                 items: [
