@@ -19,5 +19,16 @@ icon: ph:path-fill
 <LinkCard icon="noto-v1:television" href="https://dyrsok.com/" title="电影人生" ></LinkCard>
 <LinkCard icon="noto-v1:television" href="https://bubuyingshi.com/" title="布布影视" ></LinkCard>
 <LinkCard icon="noto-v1:television" href="https://www.yiqiys.com/" title="一起影视" ></LinkCard>
+<LinkCard icon="noto-v1:television" href="https://1caishang.com/" title="80s看电影" ></LinkCard>
+
+</CardGrid>
+
+
+## 工具
+
+
+<CardGrid>
+
+<LinkCard icon="icon-park:tool" href="https://fuwu.pages.dev/" title="服务爬个山DEV" ></LinkCard>
 
 </CardGrid>
