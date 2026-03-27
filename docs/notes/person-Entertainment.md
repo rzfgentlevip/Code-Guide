@@ -17,7 +17,6 @@ icon: ph:path-fill
 <CardGrid>
 
 <LinkCard icon="noto-v1:television" href="https://dyrsok.com/" title="电影人生" ></LinkCard>
-
 <LinkCard icon="noto-v1:television" href="https://dyrsok.com/" title="CSDIY" ></LinkCard>
 <LinkCard icon="noto-v1:television" href="https://github.com/forthespada/developer-roadmap-zh-CN" title="Code RoadMap" ></LinkCard>
 
