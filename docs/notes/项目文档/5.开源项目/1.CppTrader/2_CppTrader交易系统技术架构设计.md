@@ -7,708 +7,922 @@ order: 2
 ---
 
 
-本章主要通过源码阅读，解读一下CppTrader项目的内部架构设计，主要包括以下几个模块:
+## 股票符号定义
 
-1. NASDAQ ITCH协议处理器；
+股票代表交易所中的一个交易标的，如股票、ETF等。
 
-## NASDAQ ITCH协议处理器
+设计特点：
+- 使用固定大小数组存储名称（8字节），避免动态内存分配
+- 支持高性能的复制和比较操作
+- 适用于高频交易场景，减少内存碎片和分配开销
 
-在了解ITCH协议处理器之前，首先需要了解以下ITCH协议前置知识：[ITCH协议参考](/project-docs/Opensource/cpptrader/交易系统概念介绍/#ithc协议)
-
-### ITCH处理器头文件设计
+NASDAQ ITCH 协议中，股票代码通常为1-5个字符，如 "AAPL"、"MSFT"，8字节足以容纳最常见的股票代码（包括空字符终止符）；
 
 ```c++
-#ifndef CPPTRADER_ITCH_HANDLER_H
-#define CPPTRADER_ITCH_HANDLER_H
+uint32_t Id; //股票唯一标识符（Symbol Id）
+char Name[8] //固定8字节字符数组，存储股票代码如 "AAPL", "MSFT"
+```
 
-#include "utility/endian.h"
-#include "utility/iostream.h"
+### 设计要点解析
 
-#include <vector>
+1、为什么使用固定大小数组而不是 std::string？
 
-namespace CppTrader {
-/*!
-    \namespace CppTrader::ITCH
-    \brief ITCH protocol definitions
-*/
-namespace ITCH {
 
-//! System Event Message 系统事件消息
-struct SystemEventMessage{};
-//! Stock Directory Message
-struct StockDirectoryMessage{};
-//! Stock Trading Action Message
-struct StockTradingActionMessage{};
-//! Reg SHO Short Sale Price Test Restricted Indicator Message
-struct RegSHOMessage{};
-//! Market Participant Position Message
-struct MarketParticipantPositionMessage{};
-//! MWCB Decline Level Message
-struct MWCBDeclineMessage{};
-//! MWCB Status Message
-struct MWCBStatusMessage{};
-//! IPO Quoting Period Update Message
-struct IPOQuotingMessage{};
-//! Add Order Message
-struct AddOrderMessage{};
-//! Add Order with MPID Attribution Message
-struct AddOrderMPIDMessage{};
-//! Order Executed Message
-struct OrderExecutedMessage{};
-//! Order Executed With Price Message
-struct OrderExecutedWithPriceMessage{};
-//! Order Cancel Message
-struct OrderCancelMessage{};
-//! Order Delete Message
-struct OrderDeleteMessage{};
-//! Order Replace Message
-struct OrderReplaceMessage{};
-//! Trade Message
-struct TradeMessage{};
-//! Cross Trade Message
-struct CrossTradeMessage{};
-//! Broken Trade Message
-struct BrokenTradeMessage{};
-//! Net Order Imbalance Indicator (NOII) Message
-struct NOIIMessage{};
-//! Retail Price Improvement Indicator (RPII) Message
-struct RPIIMessage{};
-//! Limit Up – Limit Down (LULD) Auction Collar Message
-struct LULDAuctionCollarMessage{};
-//! Unknown message
-struct UnknownMessage{};
-//! NASDAQ ITCH handler class
-/*!
-    NASDAQ ITCH handler is used to parse NASDAQ ITCH protocol and handle its
-    messages in special handlers.
+| 特性       | std::string  | char[8]       |
+| :--------- | :----------- | :------------ |
+| 内存分配   | 堆分配       | 栈分配        |
+| 缓存友好性 | 差           | 好            |
+| 拷贝开销   | 需要分配内存 | 直接复制8字节 |
+| 性能       | 较慢         | 极快          |
+| 灵活性     | 可变长度     | 固定长度      |
+| 适用场景   | 通用场景     | 高频交易      |
 
-    NASDAQ ITCH protocol specification:
-    http://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification.pdf
 
-    NASDAQ ITCH protocol examples:
-    https://emi.nasdaq.com/ITCH
+在高频交易系统中，性能是首要目标，固定大小数组避免了：
 
-    Not thread-safe.
-*/
-class ITCHHandler
+1. 动态内存分配（减少延迟）
+2. 内存碎片（提高缓存命中率）
+3. 间接访问（减少指针跳转）
+
+2、内存布局优化
+
+```c++
+// Symbol 对象内存布局（64位系统）
+struct Symbol {
+    uint32_t Id;    // 偏移 0-3 字节
+    char Name[8];   // 偏移 4-11 字节
+};                  // 总大小 12 字节
+                    // 可能对齐到 16 字节（取决于编译器）
+```
+
+这种紧凑布局使得：
+
+1. 单个Symbol对象可以放入一个CPU缓存行（通常64字节）
+2. 多个Symbol可以连续存储，提高遍历效率
+3. 复制操作只需复制12-16字节
+
+3、noexcept 的重要性
+
+在所有函数上使用 noexcept 确保：
+
+1. 编译器可以生成更优化的代码
+2. 在性能关键路径上避免异常处理开销
+3. 明确表明这些操作是安全的
+
+## 价格层级设计
+
+
+
+
+### 数据结构层次关系
+
+**成员设计**:
+
+```c++
+struct Level
 {
-public:
-    ITCHHandler() { Reset(); }
-    ITCHHandler(const ITCHHandler&) = delete;
-    ITCHHandler(ITCHHandler&&) = delete;
-    virtual ~ITCHHandler() = default;
+    //! Level type 行情类型
+    //! 层级类型（买单或卖单）
+    LevelType Type;
+    //! Level price 行情价格
+    //! 层级价格（该价格水平的所有订单价格相同）
+    uint64_t Price;
+    //! Level volume 行情总量
+     //! 总成交量（该价格水平所有订单的总数量）
+    uint64_t TotalVolume;
+    //! 隐藏成交量（冰山订单中不可见的部分）
+    //! Level hidden volume 隐藏量
+    uint64_t HiddenVolume;
+    //! 可见成交量（冰山订单中可见的部分）
+    //! Level visible volume
+    uint64_t VisibleVolume; //可见量
+    //! 订单数量（该价格水平上的订单个数）
+    //! Level orders 行情订单
+    size_t Orders;
+};
+```
 
-    ITCHHandler& operator=(const ITCHHandler&) = delete;
-    ITCHHandler& operator=(ITCHHandler&&) = delete;
-    bool Process(void* buffer, size_t size);
-    bool ProcessMessage(void* buffer, size_t size);
-    //! Reset ITCH handler
-    void Reset();
+**数据结构设计**:
 
-protected:
-    // Message handlers 虚函数 可以被子类重写
-    virtual bool onMessage(const SystemEventMessage& message) { return true; }
-    virtual bool onMessage(const StockDirectoryMessage& message) { return true; }
-    virtual bool onMessage(const StockTradingActionMessage& message) { return true; }
-    virtual bool onMessage(const RegSHOMessage& message) { return true; }
-    virtual bool onMessage(const MarketParticipantPositionMessage& message) { return true; }
-    virtual bool onMessage(const MWCBDeclineMessage& message) { return true; }
-    virtual bool onMessage(const MWCBStatusMessage& message) { return true; }
-    virtual bool onMessage(const IPOQuotingMessage& message) { return true; }
-    virtual bool onMessage(const AddOrderMessage& message) { return true; }
-    virtual bool onMessage(const AddOrderMPIDMessage& message) { return true; }
-    virtual bool onMessage(const OrderExecutedMessage& message) { return true; }
-    virtual bool onMessage(const OrderExecutedWithPriceMessage& message) { return true; }
-    virtual bool onMessage(const OrderCancelMessage& message) { return true; }
-    virtual bool onMessage(const OrderDeleteMessage& message) { return true; }
-    virtual bool onMessage(const OrderReplaceMessage& message) { return true; }
-    virtual bool onMessage(const TradeMessage& message) { return true; }
-    virtual bool onMessage(const CrossTradeMessage& message) { return true; }
-    virtual bool onMessage(const BrokenTradeMessage& message) { return true; }
-    virtual bool onMessage(const NOIIMessage& message) { return true; }
-    virtual bool onMessage(const RPIIMessage& message) { return true; }
-    virtual bool onMessage(const LULDAuctionCollarMessage& message) { return true; }
-    virtual bool onMessage(const UnknownMessage& message) { return true; }
+```c++
+Level (基础层级信息)
+   ↑
+LevelNode (层级节点)
+   ├── 继承 Level (价格、成交量等)
+   ├── 继承 AVL Node (树节点功能)
+   └── 包含 OrderList (该层级的订单链表)
+```
 
+### AVL树与链表结合
+
+```c++
+// 订单簿的数据结构
+Levels _bids;  // AVL树，按价格排序
+  └── LevelNode (价格 $100.50)
+       └── OrderList: [Order1, Order2, Order3]  // 时间优先
+  └── LevelNode (价格 $100.49)
+       └── OrderList: [Order4, Order5]
+```
+
+### 价格优先 + 时间优先
+
+```c++
+// 价格优先：AVL树按价格排序
+// 买单：高价格优先（通过反向迭代器）
+// 卖单：低价格优先（通过正向迭代器）
+
+// 时间优先：同一价格内使用链表（FIFO）
+OrderList: [最早订单, 中间订单, 最新订单]
+```
+
+### 冰山订单支持
+
+```c++
+struct Level {
+    uint64_t TotalVolume;   // 总数量 = 可见 + 隐藏
+    uint64_t VisibleVolume; // 可见数量（显示在订单簿）
+    uint64_t HiddenVolume;  // 隐藏数量（冰山订单未显示部分）
+    
+    // 冰山订单行为：
+    // 1. 初始显示 VisibleVolume
+    // 2. VisibleVolume 被消耗完后
+    // 3. 从 HiddenVolume 补充到 VisibleVolume
+    // 4. 重复直到订单完全成交
+};
+```
+
+### 内存布局优化
+
+```c++
+// Level 结构体大小（64位系统）
+struct Level {
+    LevelType Type;      // 1字节（实际可能对齐到4）
+    // 3字节填充
+    uint64_t Price;      // 8字节
+    uint64_t TotalVolume;// 8字节
+    uint64_t HiddenVolume;// 8字节
+    uint64_t VisibleVolume;// 8字节
+    size_t Orders;       // 8字节（64位）
+}; // 总共约 48字节
+
+// LevelNode 继承 Level 并添加：
+// - AVL树节点指针（左右父指针，平衡因子）
+// - 订单链表头指针
+// 总大小约 72-96字节，适合缓存行
+```
+
+### 更新事件机制
+
+```c++
+// 当价格层级发生变化时，创建 LevelUpdate 对象
+LevelUpdate update(UpdateType::ADD, level, is_top);
+// 通过 MarketHandler 通知订阅者
+market_handler.onUpdateLevel(order_book, update.Update, update.Top);
+```
+
+### noexcept 的重要性
+
+所有操作都标记为 noexcept 确保：
+
+1. 性能：编译器可以生成更优化的代码
+2. 安全：在高频交易中避免异常传播
+3. 可预测：延迟确定性更高
+
+这个设计实现了高性能订单簿的核心数据结构，通过组合 AVL 树和链表，在保证排序的同时实现了 O(log n) 的查找和 O(1) 的订单插入/删除。
+
+## 订单簿设计
+
+### 订单簿整体架构
+
+在交易系统中，每只股票都有自己独立的订单簿，这是标准的市场架构设计。因此通常配置一个市场管理器,管理不同的股票和订单簿；
+
+```c++
+// 从 market_manager.h 可以看到关键容器
+class MarketManager {
 private:
-    // _size：当前正在处理的消息的总长度（0 表示等待新消息）
-    size_t _size;
-    // _cache：std::vector<uint8_t> 类型的缓存，用于存储不完整的消息
-    std::vector<uint8_t> _cache;
+    // 股票容器（按索引访问）
+    Symbols _symbols;           // vector<Symbol*>
+    
+    // 订单簿容器（与股票一一对应，相同索引）
+    OrderBooks _order_books;    // vector<OrderBook*>
+    
+    // 全局订单索引（快速查找任意订单）
+    Orders _orders;             // hashmap<order_id, OrderNode*>
+    
+    // 通过股票ID快速获取订单簿
+    const OrderBook* GetOrderBook(uint32_t id) const noexcept;
+};
+```
 
-    bool ProcessSystemEventMessage(void* buffer, size_t size);
-    bool ProcessStockDirectoryMessage(void* buffer, size_t size);
-    bool ProcessStockTradingActionMessage(void* buffer, size_t size);
-    bool ProcessRegSHOMessage(void* buffer, size_t size);
-    bool ProcessMarketParticipantPositionMessage(void* buffer, size_t size);
-    bool ProcessMWCBDeclineMessage(void* buffer, size_t size);
-    bool ProcessMWCBStatusMessage(void* buffer, size_t size);
-    bool ProcessIPOQuotingMessage(void* buffer, size_t size);
-    bool ProcessAddOrderMessage(void* buffer, size_t size);
-    bool ProcessAddOrderMPIDMessage(void* buffer, size_t size);
-    bool ProcessOrderExecutedMessage(void* buffer, size_t size);
-    bool ProcessOrderExecutedWithPriceMessage(void* buffer, size_t size);
-    bool ProcessOrderCancelMessage(void* buffer, size_t size);
-    bool ProcessOrderDeleteMessage(void* buffer, size_t size);
-    bool ProcessOrderReplaceMessage(void* buffer, size_t size);
-    bool ProcessTradeMessage(void* buffer, size_t size);
-    bool ProcessCrossTradeMessage(void* buffer, size_t size);
-    bool ProcessBrokenTradeMessage(void* buffer, size_t size);
-    bool ProcessNOIIMessage(void* buffer, size_t size);
-    bool ProcessRPIIMessage(void* buffer, size_t size);
-    bool ProcessLULDAuctionCollarMessage(void* buffer, size_t size);
-    bool ProcessUnknownMessage(void* buffer, size_t size);
+多订单簿的设计核心要点：
 
-    template <size_t N>
-    size_t ReadString(const void* buffer, char (&str)[N]);
-    size_t ReadTimestamp(const void* buffer, uint64_t& value);
+1. 一对一映射：每只股票一个独立的订单簿
+2. 高效查找：通过股票ID直接索引（O(1)）
+3. 内存优化：使用vector连续存储，缓存友好
+4. 独立匹配：各订单簿独立进行价格发现
+5. 全局索引：统一的订单索引用于快速访问
+6. 可扩展性：支持分片和并发优化
+
+这种设计既保证了性能（O(1)查找），又保证了隔离性（不同股票的订单不会互相干扰），是交易系统的标准实践。
+
+### 数据成员设计
+
+```c++
+
+class OrderBook
+{
+    // 声明 MarketManager 为友元类，允许其访问私有成员
+    friend class MarketManager;
+  
+private:
+    // Market manager // 市场管理器引用，用于触发市场事件回调
+    MarketManager& _manager;
+
+    // Order book symbol 该订单簿对应的股票符号
+    Symbol _symbol;
+
+     // ==================== 普通订单簿（限价单） ====================
+    // Bid/Ask Price Levels（买卖盘口价格）指的是在订单簿中，不同价格上等待成交的买入和卖出委托单。
+    //它们是市场深度的直接体现，反映了各个价位上的供需关系
+    LevelNode* _best_bid;//最佳买价层级指针（买一价格）
+    LevelNode* _best_ask;// 最佳卖价层级指针（卖一价格）
+    // AVl平衡二叉树结构
+    Levels _bids;// 买单层级容器（AVL树，按价格降序）
+    Levels _asks;// 卖单层级容器（AVL树，按价格升序）
+
+     // ==================== 止损订单簿 ====================
+    // Buy/Sell stop orders levels
+    LevelNode* _best_buy_stop;// 最佳买入止损价格层级
+    LevelNode* _best_sell_stop;// 最佳卖出止损价格层级
+    Levels _buy_stop;// 买入止损单容器（按触发价格排序）
+    Levels _sell_stop;// 卖出止损单容器（按触发价格排序）
+
+        // ==================== 跟踪止损订单簿 ====================
+
+    // Buy/Sell trailing stop orders levels
+    LevelNode* _best_trailing_buy_stop; // 最佳跟踪买入止损价格层级
+    LevelNode* _best_trailing_sell_stop;// 最佳跟踪卖出止损价格层级
+    Levels _trailing_buy_stop;// 跟踪买入止损单容器
+    Levels _trailing_sell_stop;// 跟踪卖出止损单容器
+
+     // ==================== 市场价格跟踪 ====================
+    
+    // 最后成交的买价（用于跟踪止损计算）
+    // Market last and trailing prices
+    uint64_t _last_bid_price;
+    uint64_t _last_ask_price;// 最后成交的卖价
+    uint64_t _matching_bid_price;// 匹配时的买价
+    uint64_t _matching_ask_price; // 匹配时的卖价
+    uint64_t _trailing_bid_price;// 跟踪止损的买价参考
+    uint64_t _trailing_ask_price;// 跟踪止损的卖价参考
+
 };
 
-/*! \example itch_handler.cpp NASDAQ ITCH handler example */
-
-} // namespace ITCH
+} // namespace Matching
 } // namespace CppTrader
-
-#include "itch_handler.inl"
-
-#endif // CPPTRADER_ITCH_HANDLER_H
-
 ```
 
-1、消息类型
+### 订单簿多层次设计
 
-ITCH协议中有不同类型的消息 [ITCH协议消息类型](/project-docs/Opensource/cpptrader/交易系统概念介绍/#消息类型) ,因此通过struct数据结构类定义不同类型的消息实体对象，例如`SystemEventMessage`表示系统事件消息;
-
-2、协议处理器 ITCHHandler
-
-协议处理器主要用来读取并且解析ITCH协议中不同的消息，其中设计了两个私有属性:`_size`表示当前处理消息的总长度，`_cache`:用于存储不完整的消息；
-
-`onMessage`虚函数，不同用户可以对消息的处理可以灵活的自定义，通过重写`onMessage`函数，实现对消息的自定义处理，在本项目中，`MyITCHHandler`自定义处理器通过共有继承`ITCHHandler`处理器，然后重写`onMessage`函数来输出读取到的事件消息;
-
-```c++
-bool onMessage(const SystemEventMessage& message) override { 
-    return OutputMessage(message); 
-}
-
-static bool OutputMessage(const TMessage& message)
- {
-    std::cout << message << std::endl;
-    return true;
-}
+```yaml
+OrderBook (订单簿)
+├── 限价单簿 (Limit Orders)
+│   ├── Bids (买单) - 价格降序
+│   └── Asks (卖单) - 价格升序
+├── 止损单簿 (Stop Orders)
+│   ├── Buy Stop (买入止损)
+│   └── Sell Stop (卖出止损)
+└── 跟踪止损单簿 (Trailing Stop Orders)
+    ├── Trailing Buy Stop
+    └── Trailing Sell Stop
 ```
 
-`Process*` 协议处理器中，对ITCH协议中不同的消息，调用不同的方法进行解析处理，解析方法以`Process*`开头的方法;
+### 价格层级管理
+
+使用 AVL平衡二叉树 存储价格层级：
+
+- 插入/删除/查找：O(log n) 时间复杂度
+- 自动排序：支持价格优先匹配
+- 最佳价格快速访问：通过 _best_bid 和 _best_ask 指针
+
+### 订单类型详解
+
+| 订单类型       | 触发条件 | 执行方式   | 用途       |
+| :------------- | :------- | :--------- | :--------- |
+| **限价单**     | 立即     | 指定价格   | 提供流动性 |
+| **市价单**     | 立即     | 最优价格   | 快速成交   |
+| **止损单**     | 价格触及 | 转为市价单 | 止损保护   |
+| **止损限价单** | 价格触及 | 转为限价单 | 精确止损   |
+| **跟踪止损单** | 价格回撤 | 动态触发   | 趋势跟踪   |
 
 
-在`itch_hander.cpp`文件中，对ITCH处理器的各种方法进行实现，应用中也实现了对处理器性能测试案例，请参考:[ITCH处理器基准测试](/project-docs/Opensource/cpptrader/项目测试/#nasdaq-itch-handler)
-
-
-
-### Process 方法实现
-
-
+### 跟踪止损计算逻辑
 
 ```c++
-/*!
-    \file itch_handler.cpp
-    \brief NASDAQ ITCH handler implementation
-    \author Ivan Shynkarenka
-    \date 21.07.2017
-    \copyright MIT License
-*/
+// 买入跟踪止损：价格回撤到一定幅度时触发买入
+trigger_price = highest_price_since_order * (1 - trailing_percent)
 
-#include "trader/providers/nasdaq/itch_handler.h"
+// 卖出跟踪止损：价格回撤到一定幅度时触发卖出
+trigger_price = lowest_price_since_order * (1 + trailing_percent)
+```
 
-#include <cassert>
+### 冰山订单支持
 
+通过 hidden 和 visible 参数实现：
+
+- 只显示部分数量（visible）
+
+- 隐藏剩余数量（hidden）
+
+- 当可见数量消耗完，自动补充
+
+### 性能优化设计
+
+1. 内存池分配：减少内存分配开销
+
+2. AVL树索引：快速价格查找
+
+3. 最佳价格指针：O(1) 获取买卖一价格
+
+4. 友元类设计：允许 MarketManager 高效访问
+
+这个类实现了一个完整的订单簿数据结构，是高频交易引擎的核心组件，支持多种订单类型和复杂的止损逻辑。
+
+## 市场管理器设计
+
+### 数据结构设计
+
+```c++
 namespace CppTrader {
-namespace ITCH {
-
-      /**
-     * 功能：处理从网络接收的原始数据流，解析出完整的ITCH消息
-     * 
-     * ITCH协议特点：
-     * - 每条消息以2字节长度字段开头（大端序）
-     * - 消息是流式的，可能被拆分成多个TCP包传输
-     * - 需要处理粘包和拆包问题
-     * 
-     * 状态管理：
-     * - _size: 当前正在解析的消息总长度（0表示未开始解析新消息）
-     * - _cache: 缓存不完整的消息数据
-     */
-bool ITCHHandler::Process(void* buffer, size_t size)
+namespace Matching {
+class MarketManager
 {
-    /**
-     * size_t index = 0;
-        size_t：无符号整数类型，保证足够大以表示内存中任意对象的大小
+    friend class OrderBook;// 允许 OrderBook 访问私有成员
 
-        用途：作为游标，记录当前解析到数据流的哪个位置
+public:
+    //! Symbols container 符号容器类型（存储股票符号指针的向量）
+    typedef std::vector<Symbol*> Symbols;
+    //! Order books container 订单簿容器类型（存储订单簿指针的向量）
+    typedef std::vector<OrderBook*> OrderBooks;
+    //! Orders container 订单容器类型（哈希映射：订单ID -> 订单节点）
+    typedef CppCommon::HashMap<uint64_t, OrderNode*, FastHash> Orders;
 
-        典型值：在 64 位系统上是 8 字节，在 32 位系统上是 4 字节
-     */
-    // 解析游标：记录当前已处理到的位置
-    size_t index = 0;
-    // 将输入缓冲区转换为字节指针，便于逐字节操作
-    uint8_t* data = (uint8_t*)buffer;
+     // ==================== 查询方法 ====================
+    const Symbols& symbols() const noexcept { return _symbols; }
+    const OrderBooks& order_books() const noexcept { return _order_books; }
+    const Orders& orders() const noexcept { return _orders; }
+    
+    const Symbol* GetSymbol(uint32_t id) const noexcept;
+    const OrderBook* GetOrderBook(uint32_t id) const noexcept;
+    const Order* GetOrder(uint64_t id) const noexcept;
 
-    /**
-     * ITCH 消息格式：每条消息以 2 字节长度字段开头（小端序）
+    // ==================== 符号管理方法 ====================
+    ErrorCode AddSymbol(const Symbol& symbol);
+    ErrorCode DeleteSymbol(uint32_t id);
 
-        为什么是 3 字节？：需要至少 2 字节获取长度，加上可能需要缓存
+    // ==================== 订单簿管理方法 ====================
+    ErrorCode AddOrderBook(const Symbol& symbol);
+    ErrorCode DeleteOrderBook(uint32_t id);
 
-        缓存状态：
+    // ==================== 订单管理方法 ====================
+    ErrorCode AddOrder(const Order& order);
+    ErrorCode ReduceOrder(uint64_t id, uint64_t quantity);
+    ErrorCode ModifyOrder(uint64_t id, uint64_t new_price, uint64_t new_quantity);
+    ErrorCode MitigateOrder(uint64_t id, uint64_t new_price, uint64_t new_quantity);
+    ErrorCode ReplaceOrder(uint64_t id, uint64_t new_id, uint64_t new_price, uint64_t new_quantity);
+    ErrorCode ReplaceOrder(uint64_t id, const Order& new_order);
+    ErrorCode DeleteOrder(uint64_t id);
 
-        _cache.size() == 0 且 remaining < 3：数据不足，先缓存 1 字节
+    // ==================== 订单执行方法 ====================
+    ErrorCode ExecuteOrder(uint64_t id, uint64_t quantity);
+    ErrorCode ExecuteOrder(uint64_t id, uint64_t price, uint64_t quantity);
 
-        _cache.size() == 1：已有 1 字节缓存，继续收集
-     */
+     // ==================== 订单匹配控制 ====================
+    bool IsMatchingEnabled() const noexcept { return _matching; }
+    void EnableMatching() { _matching = true; Match(); }
+    void DisableMatching() { _matching = false; }
+    void Match();
 
-    /**
-     * 主循环：处理输入缓冲区中的所有数据
-     * 使用while循环而不是for，因为处理过程中可能跳过不定长度
-     */
-    while (index < size)
-    {
-         // ==================== 阶段1：读取消息长度 ====================
-        // 当前没有正在解析的消息，需要读取新消息的长度字段
-        if (_size == 0)
-        {
-            // 输入缓冲区中剩余未处理的数据量
-            size_t remaining = size - index;
+private:
+    // Market handler/ 默认市场事件处理器（单例模式）
+    static MarketHandler _default;
+    //// 市场事件处理器引用（用户自定义或默认）
+    MarketHandler& _market_handler;
+    // Auxiliary memory manager 辅助内存管理器（用于其他内存分配）
+    CppCommon::DefaultMemoryManager _auxiliary_memory_manager;
 
-            /**
-             * 情况A：长度字段不完整，需要缓存
-             * 
-             * 触发条件：
-             * 1. _cache为空 且 剩余数据不足3字节（2字节长度+至少1字节数据）
-             * 2. _cache已有1字节（说明上次收到了1字节，这次继续收集）
-             * 
-             * 为什么是3字节？因为最少需要2字节长度+1字节消息类型才能判断
-             */
-            // Collect message size into the cache
-            if (((_cache.size() == 0) && (remaining < 3)) || (_cache.size() == 1))
-            {
-                _cache.push_back(data[index++]);
-                continue;
-            }
+    // ==================== 价格层级内存管理 ====================
+    // 价格层级池（用于订单簿中的买/卖盘层级）
+    // Bid/Ask price levels
+    CppCommon::PoolMemoryManager<CppCommon::DefaultMemoryManager> _level_memory_manager;
+    CppCommon::PoolAllocator<LevelNode, CppCommon::DefaultMemoryManager> _level_pool;
 
-            /**
-             * 情况B：有足够的数据读取消息长度
-             */
-            // Read a new message size
-            uint16_t message_size;
-            if (_cache.empty())
-            {
-                /**
-                 * 子情况B1：没有缓存数据，直接从输入缓冲区读取
-                 * ReadBigEndian: 将大端序的2字节转换为本机字节序
-                 * 注意：这里index会在ReadBigEndian内部自增2
-                 */
-                // Read the message size directly from the input buffer
-                index += CppCommon::Endian::ReadBigEndian(&data[index], message_size);
-            }
-            else
-            {
-                 /**
-                 * 子情况B2：有缓存数据（说明之前收到了不完整的长度字段）
-                 * 从缓存中读取长度字段，然后清空缓存
-                 */
-                // Read the message size from the cache
-                CppCommon::Endian::ReadBigEndian(_cache.data(), message_size);
+     // ==================== 符号内存管理 ====================
+    // 符号对象池（减少内存分配开销）
+    // Symbols
+    CppCommon::PoolMemoryManager<CppCommon::DefaultMemoryManager> _symbol_memory_manager;
+    CppCommon::PoolAllocator<Symbol, CppCommon::DefaultMemoryManager> _symbol_pool;
+    Symbols _symbols;
 
-                // Clear the cache
-                _cache.clear();
-            }
-            // 保存当前消息的总长度，进入下一阶段
-            _size = message_size;
-        }
+     // ==================== 订单簿内存管理 ====================
+    // 订单簿对象池
+    // Order books
+    CppCommon::PoolMemoryManager<CppCommon::DefaultMemoryManager> _order_book_memory_manager;
+    CppCommon::PoolAllocator<OrderBook, CppCommon::DefaultMemoryManager> _order_book_pool;
+    OrderBooks _order_books;
 
-         // ==================== 阶段2：读取消息体 ====================
-        // 有正在解析的消息（_size > 0），需要收集完整的消息体
-        // Read a new message
-        if (_size > 0)
-        {
-            size_t remaining = size - index;// 剩余未处理的数据量
+     // ==================== 订单内存管理 ====================
+    // 订单节点池
+    // Orders
+    CppCommon::PoolMemoryManager<CppCommon::DefaultMemoryManager> _order_memory_manager;
+    CppCommon::PoolAllocator<OrderNode, CppCommon::DefaultMemoryManager> _order_pool;
+    Orders _orders;
 
-              /**
-             * 情况A：消息体不完整，需要缓存
-             */
-            // Complete or place the message into the cache
-            if (!_cache.empty())
-            {
-                /**
-                 * 子情况A1：之前已有部分缓存（消息体被拆包了）
-                 * tail = 还需要多少字节才能完成当前消息
-                 * tail = 消息总长度 - 已缓存长度
-                 */
-                size_t tail = _size - _cache.size();
-                if (tail > remaining)
-                    tail = remaining;
-                      // 将新数据追加到缓存末尾
-                _cache.insert(_cache.end(), &data[index], &data[index + tail]);
-                index += tail;
-                // 如果缓存中的数据仍然不足完整消息，继续等待下次调用
-                if (_cache.size() < _size)
-                    continue;
-            }
-            /**
-                 * 子情况A2：没有缓存，但剩余数据不够完整消息
-                 * 这种情况通常发生在：刚好解析完上一条消息，新消息长度很大
-                 * 当前TCP包只包含消息的开头部分
-                 */
-            else if (_size > remaining)
-            {
-                _cache.reserve(_size);// 预分配内存，避免多次扩容
-                // 将剩余所有数据都放入缓存
-                _cache.insert(_cache.end(), &data[index], &data[index + remaining]);
-                index += remaining;
-                continue;
-            }
-            /**
-             * 情况B：有完整的消息可以处理
-             */
-            // Process the current message
-            if (_cache.empty())
-            {
-                 /**
-                 * 子情况B1：消息完整且在输入缓冲区中是连续的
-                 * 直接处理输入缓冲区中的消息数据
-                 */
-                // Process the current message size directly from the input buffer
-                if (!ProcessMessage(&data[index], _size))
-                    return false;
-                index += _size;
-            }
-            else
-            {
-                /**
-                 * 子情况B2：消息数据来自缓存（之前不完整的数据）
-                 * 处理缓存中的完整消息
-                 */
-                // Process the current message size directly from the cache
-                if (!ProcessMessage(_cache.data(), _size))
-                    return false;
+    ErrorCode AddMarketOrder(const Order& order, bool recursive);
+    ErrorCode AddLimitOrder(const Order& order, bool recursive);
+    ErrorCode AddStopOrder(const Order& order, bool recursive);
+    ErrorCode AddStopLimitOrder(const Order& order, bool recursive);
+    ErrorCode ReduceOrder(uint64_t id, uint64_t quantity, bool recursive);
+    ErrorCode ModifyOrder(uint64_t id, uint64_t new_price, uint64_t new_quantity, bool mitigate, bool recursive);
+    ErrorCode ReplaceOrder(uint64_t id, uint64_t new_id, uint64_t new_price, uint64_t new_quantity, bool recursive);
+    ErrorCode DeleteOrder(uint64_t id, bool recursive);
 
-                // Clear the cache                // 清空缓存，准备处理下一条消息
+      // ==================== 订单匹配相关方法 ====================
+    
+    // 是否启用自动匹配的标志
+    // Matching
+    bool _matching;
 
-                _cache.clear();
-            }
-            /**
-             * 重置消息长度，表示当前消息已处理完毕
-             * 循环将继续，处理下一条消息
-             */
-            // Process the next message
-            _size = 0;
-        }
-    }
+    void Match(OrderBook* order_book_ptr);
+    void MatchMarket(OrderBook* order_book_ptr, Order* order_ptr);
+    void MatchLimit(OrderBook* order_book_ptr, Order* order_ptr);
+    void MatchOrder(OrderBook* order_book_ptr, Order* order_ptr);
+    bool ActivateStopOrders(OrderBook* order_book_ptr);
+    bool ActivateStopOrders(OrderBook* order_book_ptr, LevelNode* level_ptr, uint64_t stop_price);
+    bool ActivateStopOrder(OrderBook* order_book_ptr, OrderNode* order_ptr);
+    bool ActivateStopLimitOrder(OrderBook* order_book_ptr, OrderNode* order_ptr);
+    uint64_t CalculateMatchingChain(OrderBook* order_book_ptr, LevelNode* level_ptr, uint64_t price, uint64_t volume);
+    uint64_t CalculateMatchingChain(OrderBook* order_book_ptr, LevelNode* bid_level_ptr, LevelNode* ask_level_ptr);
+    void ExecuteMatchingChain(OrderBook* order_book_ptr, LevelNode* level_ptr, uint64_t price, uint64_t volume);
+    void RecalculateTrailingStopPrice(OrderBook* order_book_ptr, LevelNode* level_ptr);
+    void UpdateLevel(const OrderBook& order_book, const LevelUpdate& update) const;
+};
 
-    return true;
-}
-
-/**
- * 开始处理读取的数据
- */
-bool ITCHHandler::ProcessMessage(void* buffer, size_t size)
-{
-    // Message is empty
-    if (size == 0)
-        return false;
-
-    uint8_t* data = (uint8_t*)buffer;
-
-    switch (*data)
-    {
-        // SystemEventMessage 消息类型为S
-        case 'S': //系统事件消息，标识市场或数据源的启动、结束等状态
-            return ProcessSystemEventMessage(data, size);
-        // StockDirectoryMessage 消息类型为R
-        case 'R': //股票目录消息，提供股票的基本信息和交易状态。 
-            return ProcessStockDirectoryMessage(data, size);
-        case 'H': //股票交易行动消息，指示某支股票的交易状态（如暂停、恢复）
-            return ProcessStockTradingActionMessage(data, size);
-        case 'Y': //Reg SHO限制消息，根据Reg SHO规则指示股票的卖空状态。
-            return ProcessRegSHOMessage(data, size);
-        case 'L'://市场参与者头寸消息，标识特定市场参与者在某股票上的持仓状态
-            return ProcessMarketParticipantPositionMessage(data, size);
-        case 'V'://市场-wide熔断机制（MWCB）下跌区间消息。
-            return ProcessMWCBDeclineMessage(data, size);
-        case 'W'://市场-wide熔断机制（MWCB）状态消息。
-            return ProcessMWCBStatusMessage(data, size);
-        case 'K'://IPO报价时段更新消息。   
-            return ProcessIPOQuotingMessage(data, size);
-        case 'A': //添加订单消息（无MPID归属），表示一个新的限价订单进入市场。
-            return ProcessAddOrderMessage(data, size);
-        case 'F'://添加订单消息（有MPID归属），与`A`类似，但包含了执行经纪商的ID
-            return ProcessAddOrderMPIDMessage(data, size);
-        case 'E'://订单执行消息，表示订单部分或全部成交。    
-            return ProcessOrderExecutedMessage(data, size);
-        case 'C'://订单以指定价格执行消息，用于成交价与原显示价不同的情况（如非显示订单执行）。
-            return ProcessOrderExecutedWithPriceMessage(data, size);
-        case 'X'://订单取消消息，表示订单被部分取消（余量更新）。
-            return ProcessOrderCancelMessage(data, size);
-        case 'D'://订单删除消息，表示订单被完全取消
-            return ProcessOrderDeleteMessage(data, size);
-        case 'U'://订单替换消息，表示一个订单被修改（如数量或价格变更）。
-            return ProcessOrderReplaceMessage(data, size);
-        case 'P'://非交叉交易消息，报告常规撮合产生的成交
-            return ProcessTradeMessage(data, size);
-        case 'Q'://交叉交易消息，报告开盘、收盘或IPO等集合竞价产生的成交。
-            return ProcessCrossTradeMessage(data, size);
-        case 'B'://交易作废消息，报告一笔之前公布的成交被作废。
-            return ProcessBrokenTradeMessage(data, size);
-        case 'I'://净订单 imbalance指标消息，提供开盘和收盘集合竞价前的 imbalance 信息。 |
-            return ProcessNOIIMessage(data, size);
-        case 'N': //零售价格改进指示器消息。 
-            return ProcessRPIIMessage(data, size);
-        case 'J': //涨跌幅限制（LULD）拍卖区间消息。 
-            return ProcessLULDAuctionCollarMessage(data, size);
-        default: //其他消息
-            return ProcessUnknownMessage(data, size);
-    }
-}
-
-void ITCHHandler::Reset()
-{
-    _size = 0;
-    _cache.clear();
-}
-
-/**
- * 系统事件消息，标识市场或数据源的启动、结束等状态
- */
-bool ITCHHandler::ProcessSystemEventMessage(void* buffer, size_t size)
-{
-    // ITCH 系统事件消息的固定长度为 12 字节，使用 assert 在调试模式下进行断言检查
-    assert((size == 12) && "Invalid size of the ITCH message type 'S'");
-    if (size != 12)
-        return false;
-
-    // 将 void* 转换为 uint8_t* 以便按字节操作
-    uint8_t* data = (uint8_t*)buffer;
-
-    SystemEventMessage message;
-    // *data++ 先取当前指针的值，然后指针自增
-    message.Type = *data++;
-    // ITCH 协议使用大端序（网络字节序） ReadBigEndian 函数从网络字节序转换为主机字节序 返回读取的字节数（2），用于移动指针
-    data += CppCommon::Endian::ReadBigEndian(data, message.StockLocate);
-    data += CppCommon::Endian::ReadBigEndian(data, message.TrackingNumber);
-    //读取 6 字节的纳秒级时间戳,返回读取的字节数（6）
-    data += ReadTimestamp(data, message.Timestamp);
-    message.EventCode = *data++;
-
-    return onMessage(message);
-}
-
-} // namespace ITCH
+} // namespace Matching
 } // namespace CppTrader
 
+#include "market_manager.inl"
+
+#endif // CPPTRADER_MATCHING_MARKET_MANAGER_H
 ```
 
-根据代码，`ProcessSystemEventMessage`护理方法，系统事件消息的字段布局如下：
+### 内存管理
 
-| 字段                | 字节偏移 | 长度   | 说明               |
-| :------------------ | :------- | :----- | :----------------- |
-| **Type**            | 0        | 1 字节 | 消息类型，应为 'S' |
-| **Stock Locate**    | 1        | 2 字节 | 股票定位码         |
-| **Tracking Number** | 3        | 2 字节 | 追踪编号           |
-| **Timestamp**       | 5        | 6 字节 | 时间戳（纳秒）     |
-| **Event Code**      | 11       | 1 字节 | 事件代码           |
+- **对象池技术**：使用 `PoolAllocator` 管理符号、订单簿、订单的分配
+- **减少内存碎片**：相同类型的对象从同一内存池分配
+- **提高缓存命中率**：相关对象在内存中连续存储
 
+### 订单支持类型
 
-根据 ITCH 规范，Event Code 可能的值包括：
+- **市价单**：立即以当前最佳价格成交
+- **限价单**：指定价格成交，贡献订单簿深度
+- **止损单**：触发价格达到后激活
+- **止损限价单**：止损单和限价单的组合
 
-| 代码  | 含义                  | 说明         |
-| :---- | :-------------------- | :----------- |
-| `'O'` | Start of Messages     | 消息开始     |
-| `'S'` | Start of System Hours | 系统小时开始 |
-| `'Q'` | Start of Market Hours | 市场小时开始 |
-| `'M'` | End of Market Hours   | 市场小时结束 |
-| `'E'` | End of System Hours   | 系统小时结束 |
-| `'C'` | End of Messages       | 消息结束     |
+### 核心匹配算法
 
-
-### 处理数据技术优化分析
-
-ITCH处理器在基准测试中，吞吐量在 6489296 msg/s ，因此下面我们分析在`process`中使用了哪些技术来提高吞吐量;
-
-#### 1、零拷贝设计（Zero-Copy）
-
-##### 直接指针操作
-
-```cpp
-uint8_t* data = (uint8_t*)buffer;  // 直接使用原始缓冲区，不复制
-```
-
-- **传统做法**：将数据拷贝到内部缓冲区 → 额外的内存分配和复制
-- **CppTrader做法**：直接在原始缓冲区上操作 → **减少50-80%的内存操作**
-
-为什么`uint8_t* data = (uint8_t*)buffer`操作是直接内存操作:[零拷贝直接内存操作](/project-docs/Opensource/cpptrader/零拷贝直接内存操作/)
-
-##### 条件性缓存
-
-```cpp
-if (_cache.empty()) {
-    // 路径1：无缓存，直接处理原始数据（零拷贝）
-    ProcessMessage(&data[index], _size);
-} else {
-    // 路径2：有缓存才复制（仅在必要时）
-    ProcessMessage(_cache.data(), _size);
+```c++
+// 匹配逻辑：价格优先 + 时间优先
+void Match() {
+    // 1. 遍历所有订单簿
+    // 2. 检查买卖盘是否交叉（bid >= ask）
+    // 3. 从最优价格开始逐级匹配
+    // 4. 生成成交记录
 }
 ```
 
-**关键优化**：只在消息被拆包时才复制数据，理想情况下（数据完整到达）实现**完全零拷贝**。
+### **关键特性**
+
+- **飞行中缓和**：防止修改订单时被错误成交
+- **递归匹配**：订单成交后可能触发新的匹配机会
+- **事件驱动**：所有状态变更都通过回调通知
+
+### **性能设计**
+
+- 非线程安全，避免锁开销
+- 内联函数（`.inl` 文件）减少函数调用
+- 哈希表快速订单查找 O(1)
+- 向量容器按索引访问 O(1)
+
+这个类实现了一个**完整的订单簿匹配引擎**，是高频交易系统的核心组件。
 
 
-#### 2、分支预测优化（Branch Prediction）
+## 市场处理器设计
 
-##### 常见路径优先
+MarketHandler 是一个抽象基类，用于接收和处理来自 MarketManager 的所有市场事件。用户通过继承此类并重写相应的事件处理函数，可以实现自定义的市场监控逻辑。
 
-```cpp
-if (_cache.empty())  // 绝大多数情况为 true（无缓存）
+可以监控的市场变化包括：
+
+- 股票的增删改
+- 订单的增删改
+- 订单成交
+- 订单簿的更新
+
+### 属性和方法设计
+
+```c++
+namespace CppTrader {
+namespace Matching {
+
+/*!
+ * @brief 市场事件处理器基类
+ * 
+ * MarketHandler 是一个抽象基类，用于接收和处理来自 MarketManager 的所有市场事件。
+ * 用户通过继承此类并重写相应的事件处理函数，可以实现自定义的市场监控逻辑。
+ * 
+ * 可以监控的市场变化包括：
+ * - 股票的增删改
+ * - 订单的增删改
+ * - 订单成交
+ * - 订单簿的更新
+ * 
+ * 设计模式：观察者模式（Observer Pattern）
+ * - MarketManager 是被观察者（Subject）
+ * - MarketHandler 是观察者（Observer）
+ * 
+ * 使用场景：
+ * 1. 订单簿深度监控：统计买卖盘口变化
+ * 2. 交易策略实现：根据市场事件触发交易决策
+ * 3. 性能监控：统计市场事件处理延迟
+ * 4. 数据记录：将市场事件写入日志或数据库
+ * 5. 风险控制：检测异常交易行为
+ * 
+ * Not thread-safe. 非线程安全
+ */
+class MarketHandler
 {
-    // 快速路径：直接处理
-    ProcessMessage(&data[index], _size);
-}
-else  // 罕见情况（<1%）
-{
-    // 慢速路径：处理缓存
-}
+    // 声明 MarketManager 为友元类，允许其调用受保护的虚函数
+    friend class MarketManager;
+
+public:
+    /*!
+     * @brief 默认构造函数
+     * 使用默认实现，初始化一个空的处理器
+     */
+    MarketHandler() = default;
+    
+    // 禁用拷贝构造函数（避免意外的复制）
+    MarketHandler(const MarketHandler&) = delete;
+    
+    // 禁用移动构造函数
+    MarketHandler(MarketHandler&&) = delete;
+    
+    /*!
+     * @brief 虚析构函数
+     * 使用默认实现，确保派生类对象正确析构
+     * virtual 保证通过基类指针删除派生类对象时，调用正确的析构函数
+     */
+    virtual ~MarketHandler() = default;
+    
+    // 禁用拷贝赋值运算符
+    MarketHandler& operator=(const MarketHandler&) = delete;
+    
+    // 禁用移动赋值运算符
+    MarketHandler& operator=(MarketHandler&&) = delete;
+
+protected:
+    // ==================== 股票事件处理器 ====================
+    
+    /*!
+     * @brief 股票添加事件
+     * 当新的股票添加到市场时触发
+     * 
+     * @param symbol 被添加的股票对象
+     * 
+     * 触发时机：MarketManager::AddSymbol()
+     * 应用场景：
+     * - 初始化该股票的订单簿监控
+     * - 记录股票信息到数据库
+     * - 加载该股票的历史数据
+     * 
+     * 示例：
+     * @code
+     * virtual void onAddSymbol(const Symbol& symbol) override {
+     *     std::cout << "New symbol added: " << symbol.Name << std::endl;
+     *     _symbol_count++;
+     * }
+     * @endcode
+     */
+    virtual void onAddSymbol(const Symbol& symbol) {}
+    
+    /*!
+     * @brief 股票删除事件
+     * 当股票从市场移除时触发
+     * 
+     * @param symbol 被删除的股票对象
+     * 
+     * 触发时机：MarketManager::DeleteSymbol()
+     * 应用场景：
+     * - 清理该股票相关的监控资源
+     * - 记录股票下市信息
+     * - 归档该股票的订单簿数据
+     */
+    virtual void onDeleteSymbol(const Symbol& symbol) {}
+
+    // ==================== 订单簿事件处理器 ====================
+    
+    /*!
+     * @brief 订单簿添加事件
+     * 当为股票创建新的订单簿时触发
+     * 
+     * @param order_book 被添加的订单簿对象
+     * 
+     * 触发时机：MarketManager::AddOrderBook()
+     * 注意：通常与 onAddSymbol 成对出现
+     * 应用场景：
+     * - 初始化订单簿数据结构
+     * - 开始监控该订单簿的深度变化
+     */
+    virtual void onAddOrderBook(const OrderBook& order_book) {}
+    
+    /*!
+     * @brief 订单簿更新事件
+     * 当订单簿的状态发生变化时触发（买卖盘变化）
+     * 
+     * @param order_book 发生变化的订单簿对象
+     * @param top 是否为最优价格变化（买一/卖一变化）
+     * 
+     * 触发时机：
+     * - 订单添加/删除/修改
+     * - 订单成交
+     * - 价格层级变化
+     * 
+     * top 参数的作用：
+     * - true: 最优价格发生变化（买一/卖一变化）
+     * - false: 非最优价格变化（深度的变化）
+     * 
+     * 性能优化：通过 top 参数可以只关注最重要的价格变化
+     * 
+     * 应用场景：
+     * - 实时行情推送（Level 1 数据）
+     * - 订单簿深度监控（Level 2 数据）
+     * - 策略信号触发
+     */
+    virtual void onUpdateOrderBook(const OrderBook& order_book, bool top) {}
+    
+    /*!
+     * @brief 订单簿删除事件
+     * 当订单簿被移除时触发
+     * 
+     * @param order_book 被删除的订单簿对象
+     * 
+     * 触发时机：MarketManager::DeleteOrderBook()
+     * 应用场景：
+     * - 停止监控该订单簿
+     * - 清理相关资源
+     */
+    virtual void onDeleteOrderBook(const OrderBook& order_book) {}
+
+    // ==================== 价格层级事件处理器 ====================
+    
+    /*!
+     * @brief 价格层级添加事件
+     * 当新的价格层级创建时触发（该价格第一次出现订单）
+     * 
+     * @param order_book 所属的订单簿
+     * @param level 添加的价格层级信息
+     * @param top 是否为新添加的最优价格
+     * 
+     * 触发时机：
+     * - 订单添加到新的价格水平
+     * - 之前为空的价格水平出现订单
+     * 
+     * 示例：
+     * 订单簿原来没有 $100.50 的卖单
+     * 添加一个 $100.50 的卖单 → 触发 onAddLevel
+     */
+    virtual void onAddLevel(const OrderBook& order_book, const Level& level, bool top) {}
+    
+    /*!
+     * @brief 价格层级更新事件
+     * 当价格层级的数量发生变化时触发
+     * 
+     * @param order_book 所属的订单簿
+     * @param level 更新后的价格层级信息
+     * @param top 是否为最优价格变化
+     * 
+     * 触发时机：
+     * - 同一价格上添加新订单（数量增加）
+     * - 同一价格上订单部分成交或取消（数量减少）
+     * - 冰山订单的可见数量更新
+     * 
+     * 应用场景：
+     * - 监控订单簿深度的动态变化
+     * - 计算买卖盘失衡指标
+     * - 检测大单进出
+     * 
+     * 示例：
+     * @code
+     * virtual void onUpdateLevel(const OrderBook& order_book, 
+     *                            const Level& level, bool top) override {
+     *     if (level.VisibleVolume > 10000) {
+     *         // 检测到大单，发送告警
+     *         alertLargeOrder(level.Price, level.VisibleVolume);
+     *     }
+     * }
+     * @endcode
+     */
+    virtual void onUpdateLevel(const OrderBook& order_book, const Level& level, bool top) {}
+    
+    /*!
+     * @brief 价格层级删除事件
+     * 当价格层级完全清空时触发
+     * 
+     * @param order_book 所属的订单簿
+     * @param level 被删除的价格层级信息
+     * @param top 是否为最优价格被删除
+     * 
+     * 触发时机：
+     * - 该价格的所有订单都被成交或取消
+     * - 价格层级从订单簿中移除
+     * 
+     * 示例：
+     * 订单簿中原有 $100.50 的卖单
+     * 所有 $100.50 的订单都被成交 → 触发 onDeleteLevel
+     */
+    virtual void onDeleteLevel(const OrderBook& order_book, const Level& level, bool top) {}
+
+    // ==================== 订单事件处理器 ====================
+    
+    /*!
+     * @brief 订单添加事件
+     * 当新订单添加到市场时触发
+     * 
+     * @param order 被添加的订单对象
+     * 
+     * 触发时机：MarketManager::AddOrder()
+     * 应用场景：
+     * - 订单生命周期追踪
+     * - 订单量统计
+     * - 订单流分析
+     * 
+     * 示例：
+     * @code
+     * virtual void onAddOrder(const Order& order) override {
+     *     _total_orders++;
+     *     if (order.Type == OrderType::LIMIT) {
+     *         _limit_orders++;
+     *     }
+     * }
+     * @endcode
+     */
+    virtual void onAddOrder(const Order& order) {}
+    
+    /*!
+     * @brief 订单更新事件
+     * 当订单被修改时触发
+     * 
+     * @param order 更新后的订单对象
+     * 
+     * 触发时机：
+     * - 订单数量减少（ReduceOrder）
+     * - 订单价格或数量修改（ModifyOrder）
+     * - 订单缓和修改（MitigateOrder）
+     * 
+     * 应用场景：
+     * - 监控订单修改行为
+     * - 检测订单闪烁（Quote Stuffing）
+     * - 统计订单修改频率
+     */
+    virtual void onUpdateOrder(const Order& order) {}
+    
+    /*!
+     * @brief 订单删除事件
+     * 当订单从市场移除时触发
+     * 
+     * @param order 被删除的订单对象
+     * 
+     * 触发时机：
+     * - 订单完全取消（Cancel Order）
+     * - 订单被替换（Replace Order）
+     * - 订单完全成交后移除
+     * 
+     * 应用场景：
+     * - 订单生命周期追踪
+     * - 统计订单存活时间
+     * - 检测订单取消率
+     */
+    virtual void onDeleteOrder(const Order& order) {}
+
+    // ==================== 订单执行事件处理器 ====================
+    
+    /*!
+     * @brief 订单执行事件
+     * 当订单部分或全部成交时触发
+     * 
+     * @param order 被执行（成交）的订单对象
+     * @param price 成交价格
+     * @param quantity 成交数量
+     * 
+     * 触发时机：
+     * - 市价单立即成交
+     * - 限价单与对手方订单匹配成交
+     * - 止损单被激活后成交
+     * 
+     * 注意事项：
+     * - 一个订单可能多次触发此事件（分批成交）
+     * - 完全成交的订单后续还会触发 onDeleteOrder
+     * - 部分成交的订单会触发 onUpdateOrder（数量减少）
+     * 
+     * 应用场景：
+     * - 实时成交记录
+     * - 交易成本计算
+     * - 滑点监控
+     * - 生成交易报告
+     * 
+     * 示例：
+     * @code
+     * virtual void onExecuteOrder(const Order& order, 
+     *                             uint64_t price, 
+     *                             uint64_t quantity) override {
+     *     // 记录成交
+     *     Trade trade{
+     *         .order_id = order.Id,
+     *         .symbol = order.StockId,
+     *         .price = price,
+     *         .quantity = quantity,
+     *         .side = order.Side,
+     *         .timestamp = getCurrentTime()
+     *     };
+     *     _trades.push_back(trade);
+     *     
+     *     // 计算成交均价
+     *     _total_volume += quantity;
+     *     _total_value += price * quantity;
+     * }
+     * @endcode
+     */
+    virtual void onExecuteOrder(const Order& order, uint64_t price, uint64_t quantity) {}
+};
+
+} // namespace Matching
+} // namespace CppTrader
+
+#endif // CPPTRADER_MATCHING_MARKET_HANDLER_H
 ```
 
-##### 状态机设计
+### 引入的设计模式
 
-```cpp
-if (_size == 0) { /* 读取长度 */ }
-if (_size > 0)  { /* 读取消息体 */ }
+观察者模式:
+
+```c++
+// 观察者（Observer）：MarketHandler
+class MarketHandler {
+    virtual void onAddSymbol(...) {}   // 观察事件
+    virtual void onAddOrder(...) {}    // 观察事件
+};
+
+// 被观察者（Subject）：MarketManager
+class MarketManager {
+    MarketHandler& _handler;  // 持有观察者引用
+    
+    void AddSymbol(const Symbol& symbol) {
+        // 状态改变
+        _handler.onAddSymbol(symbol);  // 通知观察者
+    }
+};
 ```
 
-- 状态机让CPU分支预测器能够**准确预测**执行路径
-- 在现代CPU上，分支预测错误惩罚约 **10-20个时钟周期**
+### 事件驱动架构
 
-
-#### 3、内存访问模式优化
-
-#####  顺序访问
-
-```cpp
-while (index < size) {
-    // 按顺序访问 data[index], data[index+1], ...
-    index += ReadBigEndian(&data[index], message_size);
-    // ...
-}
+```c++
+MarketHandler (状态变化)
+    │
+    ├── AddOrder
+    │   ├── onAddOrder (订单添加)
+    │   ├── onAddLevel (可能的新层级)
+    │   ├── onUpdateOrderBook (订单簿更新)
+    │   └── onExecuteOrder (可能的立即成交)
+    │
+    ├── Match (订单匹配)
+    │   ├── onExecuteOrder (成交)
+    │   ├── onUpdateLevel (层级更新)
+    │   ├── onDeleteLevel (层级删除)
+    │   └── onUpdateOrderBook (订单簿更新)
+    │
+    └── DeleteOrder
+        ├── onDeleteOrder (订单删除)
+        ├── onDeleteLevel (可能的层级删除)
+        └── onUpdateOrderBook (订单簿更新)
 ```
 
-- **顺序内存访问**能充分利用CPU的**预取机制**
-- L1/L2/L3缓存的命中率可达 **95%以上**
+### 核心设计点
 
-##### 缓存行对齐
+1. 虚函数接口：提供可扩展的事件处理机制
+2. 空实现默认：派生类只需重写感兴趣的事件
+3. 事件分类清晰：股票、订单簿、价格层级、订单、成交
+4. 性能友好：通过 top 参数减少不必要的事件处理
+5. 友元访问：仅允许 MarketManager 调用受保护方法
+6. 禁用拷贝：处理器通常作为单例或引用使用
 
-```cpp
-uint8_t data[8192];  // 8KB，正好是L1缓存的典型大小
-```
-
-- 缓冲区大小与CPU缓存行大小对齐
-- 减少跨缓存行访问
-
-
-#### 4、减少内存分配
-
-##### 预分配策略
-
-```cpp
-_cache.reserve(_size);  // 预分配，避免多次扩容
-```
-
-- 每次扩容会导致 **O(n)的复制开销**
-- 预分配将多次分配降为**1次**
-
-##### 缓存重用
-
-```cpp
-_cache.clear();  // 保留已分配的内存
-```
-
-- `clear()` 不释放内存，只重置大小
-- 下次使用时直接复用已有内存
-
-#### 5、批量处理
-
-##### 消息批处理
-
-```cpp
-while (index < size)  // 一次调用处理多条消息
-```
-
-- 减少函数调用开销
-- 利用CPU流水线并行处理
-
-##### 缓冲区批量读取
-
-```cpp
-size = input->Read(buffer, sizeof(buffer));  // 一次读8KB
-```
-
-- 减少系统调用次数（从百万级降到数千次）
-
-#### 6、位操作优化
-
-##### 字节序转换
-
-```cpp
-// ReadBigEndian 的实现（典型）
-inline size_t ReadBigEndian(const uint8_t* data, uint16_t& value) {
-    value = (data[0] << 8) | data[1];  // 位运算，极快
-    return 2;
-}
-```
-
-- 使用位运算替代乘法/除法
-- 编译器会优化为单条指令（如 `bswap`）
-
-### 为什么有这些优化
-
-#### CPU架构特性
-
-现代CPU（Intel/AMD）的特点：
-
-- **L1缓存**: 32KB，延迟~4个周期
-- **L2缓存**: 256KB，延迟~12个周期  
-- **L3缓存**: 8-32MB，延迟~40个周期
-- **主内存**: 延迟~200个周期
-
-CppTrader的设计确保**90%以上的数据访问在L1/L2缓存中完成**。
-
-#### 指令流水线
-
-```asm
-; 典型处理流程（简化）
-movzx eax, byte ptr [rdi]    ; 读1字节
-shl   eax, 8                  ; 左移
-movzx ecx, byte ptr [rdi+1]  ; 读2字节
-or    eax, ecx                ; 合并
-cmp   eax, 0                  ; 检查消息长度
-```
-
-- 流水线友好，没有分支中断
-
-#### SIMD向量化
-
-虽然这个特定代码没有显式使用SIMD，但编译器在 `-O3` 优化下会自动向量化部分操作：
-
-```cpp
-_cache.insert(_cache.end(), &data[index], &data[index + tail]);
-```
-
-可能被优化为 `memcpy`，进而使用SIMD指令（如 `rep movsb`）。
-
-
-### 小结
-
-`ITCHHandler::Process` 的快，本质上来自于：
-
-1. **架构设计**：状态机 + 零拷贝 + 缓存优化
-2. **CPU友好**：顺序访问 + 分支预测 + 缓存局部性
-3. **内存管理**：预分配 + 重用 + 避免复制
-4. **批量处理**：减少调用次数 + 充分利用流水线
-
-这些优化让它在**单核上达到接近内存带宽极限的性能**，是高性能金融数据处理的一个典范实现。
+这个设计实现了灵活的事件处理机制，既保持了高性能，又提供了良好的扩展性，是交易系统架构中的关键组件。

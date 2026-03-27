@@ -274,6 +274,12 @@ export const navbar = defineNavbarConfig([
                         text: 'CppTrader 交易系统',
                         link: '/project-docs/Opensource/cpptrader/',
                         badge: {type: 'tip', text: '金融交易 c++'}
+                    },
+                    {
+                        icon: 'streamline-color:ascending-number-order-flat',
+                        text: 'Liquibook 订单匹配引擎',
+                        link: '/project-docs/Opensource/liquibook/',
+                        badge: {type: 'tip', text: '订单匹配引擎 c++'}
                     }
                 ],
             },
@@ -384,11 +390,20 @@ export const navbar = defineNavbarConfig([
                 text: 'C++必学工具',
                 items: [
                     {
-                        icon: 'icon-park-solid:correct',
-                        text: '开发工具',
-                        link: '/cplus/tools-must/'},
-                    // {icon: '',text: '',link: ''},
-                    // {icon: '',text: '',link: ''},
+                        icon: 'vscode-icons:folder-type-cmake-opened',
+                        text: 'Make 构建',
+                        link: '/cplus/tools-must/make/'
+                    },
+                    {
+                        icon: 'glyphs-poly:tools',
+                        text: 'Cmake',
+                        link: '/cplus/tools-must/cmake/'
+                    },
+                    {
+                        icon: 'streamline-sharp-color:rate-stretch-tool-flat',
+                        text: 'MPC 工具集',
+                        link: '/cplus/tools-must/mpc/'
+                    },
                 ]
             },
             {
@@ -728,6 +743,11 @@ export const navbar = defineNavbarConfig([
                 icon: '/icon/link.svg',
                 text: '友情链接',
                 items: [
+                    {
+                        icon: 'emojione:television',
+                        text: '娱乐',
+                        link: '/person/entertainment/'
+                    },
                     {
                         icon: '/icon/friend.svg',
                         text: '个人',

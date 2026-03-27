@@ -1,8 +1,8 @@
 ---
-title: 优秀开源项目
+title: Liquibook 撮合引擎项目
 createTime: 2025/03/05 07:23:37
-permalink: /project-docs/Opensource/cpptrader/
-icon: streamline-freehand-color:website-development-build
+permalink: /project-docs/Opensource/liquibook/
+icon: streamline-color:ascending-number-order-flat
 ---
 
 编写者：[::noto:red-heart::bugcode](/friends/persons/)
@@ -13,15 +13,14 @@ icon: streamline-freehand-color:website-development-build
 
 ## 项目介绍
 
-CppTrader项目是一个用c++语言开发的撮合交易系统，
+Liquibook 提供构成订单匹配引擎的底层组件。
 
 ## 项目地址
 
 c++交易系统框架CppTrader项目:
 
-- [CppTrader](https://github.com/rzfgentlevip/CppTrader)
+- [Liquibook](https://github.com/enewhuis/liquibook)
 
-- [主页及API地址](https://chronoxor.github.io/CppTrader/index.html)
 
 ## 文档说明
 
