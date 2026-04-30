@@ -280,7 +280,13 @@ export const navbar = defineNavbarConfig([
                         text: 'Liquibook 订单匹配引擎',
                         link: '/project-docs/Opensource/liquibook/',
                         badge: {type: 'tip', text: '订单匹配引擎 c++'}
-                    }
+                    },
+                    {
+                        icon: 'noto:currency-exchange',
+                        text: 'Exchange-core 交易核心',
+                        link: '/project-docs/Opensource/exchange-core/',
+                        badge: {type: 'tip', text: '交易核心 java'}
+                    },
                 ],
             },
             {
