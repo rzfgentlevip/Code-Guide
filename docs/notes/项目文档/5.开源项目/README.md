@@ -175,3 +175,6 @@ icon: streamline-freehand-color:website-development-build
 
 综合来看，Liquibook是“主干”和“灵魂”（撮合算法），CppTrader是“骨架”（高性能组件集），而 exchange-core 是“血肉”（完整交易系统）。能打通这三者，你对整个交易系统领域的认知将相当扎实。
 
+
+
+添加交易标`CoreSymbolSpecification`的动作应该封装为一个事件发送到环形buffer缓冲区，这样可以做一系列的权限，审计等追踪；

@@ -32,7 +32,7 @@ exchange-core 是一个基于 Java 的**超高性能开源交易所核心**，�
 | **订单撮合引擎**       | `MatchingEngine`, `IOrderBook`                           | **核心模块**。维护特定交易对的订单簿（`OrderBook`），执行买入/卖出订单的匹配逻辑，生成交易事件（`TradeEvent`）。提供“Naive”和“Direct”两种实现。 |
 | **风控与账户模块**     | `RiskEngine`                                             | **前置拦截与事后更新**。在订单进入撮合前验证其合法性（余额、订单参数等）；在撮合完成后更新用户账户余额，并计算手续费。支持“直接兑换”和“杠杆交易”两种模式。 |
 | **磁盘日志与快照模块** | `ISerializationProcessor`, `DummySerializationProcessor` | **持久化与恢复**。将每一笔交易和状态变更（`OrderCommand`）写入磁盘日志；支持创建内存状态的全量快照（`Snapshots`），以便快速恢复。 |
-| **API 与命令模块**     | `ExchangeApi`, 各种 `Api*Command` (如 `ApiPlaceOrder`)   | **对外接口**。定义了所有用户可执行的操作命令（下单、撤单、查账等），并负责将它们包装成 `OrderCommand` 发布到 Disruptor 的 Ring Buffer 中。 |
+| **API 与命令模块**     | `ExchangeApi`, 各种 `ApiCommand` (如 `ApiPlaceOrder`)   | **对外接口**。定义了所有用户可执行的操作命令（下单、撤单、查账等），并负责将它们包装成 `OrderCommand` 发布到 Disruptor 的 Ring Buffer 中。 |
 | **事件处理与结果反馈** | `SimpleEventsProcessor`, `IEventsHandler`                | **异步结果处理**。作为 Disruptor 的消费者，接收并处理系统产生的各种事件（成交、拒绝、订单簿变化等），最终通过回调将结果异步返回给客户端。 |
 
 ### 📊 数据流与处理流程
