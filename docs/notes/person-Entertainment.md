@@ -35,3 +35,14 @@ icon: ph:path-fill
 <LinkCard icon="icon-park:tool" href="https://fuwu.pages.dev/" title="服务爬个山DEV" ></LinkCard>
 
 </CardGrid>
+
+## 科学上网
+
+<CardGrid>
+
+<LinkCard icon="icon-park:tool" href="https://feiniaoyun.xyz/#/plan" title="飞鸟云" ></LinkCard>
+
+</CardGrid>
+
+
+
