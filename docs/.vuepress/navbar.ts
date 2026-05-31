@@ -440,6 +440,22 @@ export const navbar = defineNavbarConfig([
                     },
                 ]
             },
+            {
+                icon: 'tabler:math-max',
+                text: '量化开发',
+                items: [
+                    {
+                        icon: 'ic:baseline-developer-mode',
+                        text: '量化交易入门',
+                        link: '/cplus/quantify/量化交易入门/'
+                    },
+                    {
+                        icon: 'ix:analyze',
+                        text: '因子分析',
+                        link: '/cplus/quantify/因子分析/'
+                    },
+                ]
+            },
         ]
     },
     // 公共服务 导航
