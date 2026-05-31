@@ -445,7 +445,7 @@ export const navbar = defineNavbarConfig([
                 text: '量化开发',
                 items: [
                     {
-                        icon: 'ic:baseline-developer-mode',
+                        icon: 'tabler:math-off',
                         text: '量化交易入门',
                         link: '/cplus/quantify/量化交易入门/'
                     },
