@@ -29,6 +29,12 @@ export const navbar = defineNavbarConfig([
                         link: '/learning-notes/linux/linux命令手册/',
                         badge: '/bin/bash/'
                     },
+                    {
+                        icon: 'vscode-icons:folder-type-docker-opened',
+                        text: 'WSL子系统安装',
+                        link: '/learning-notes/linux/wsl及docker环境安装/',
+                        badge: 'wsl发行版 | /bin/bash'
+                    },
                 ]
             },
             {
